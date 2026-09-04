@@ -8884,7 +8884,27 @@ public class ChatActivityEnterView extends FrameLayout implements
                         messageTransitionIsRunning = false;
                         AndroidUtilities.runOnUIThread(moveToSendStateRunnable = () -> {
                             moveToSendStateRunnable = null;
-                            hideTopView(true);
+                            // MeeroX v238 (his «طفرة بالفقاعة» on reply sends,
+                            // proven by frame-tracking his on-device video):
+                            // the 48dp reply-strip reclaim must NOT run during
+                            // the outgoing flight. When it does, the stack
+                            // drifts while the ghost flies and the unlock-frame
+                            // re-pin snaps everything back exactly as the real
+                            // bubble is revealed. Defer the reclaim to the
+                            // flight's own net length (DEFAULT_DURATION real ms
+                            // - the transition nets to the same value in every
+                            // switch state): the strip folds UNDER an already
+                            // -stable bubble, same look as a tall incoming
+                            // message landing. Guard: never close a reply the
+                            // user opened while this waited. (The card stays
+                            // visible during the flight - upstream did the same
+                            // via its 200ms delay, and iOS crossfades the
+                            // preview over the flight too.)
+                            AndroidUtilities.runOnUIThread(() -> {
+                                if (replyingQuote == null && replyingMessageObject == null && editingMessageObject == null) {
+                                    hideTopView(true);
+                                }
+                            }, ChatListItemAnimator.DEFAULT_DURATION);
                             if (messageEditText != null) {
                                 messageEditText.setText("");
                             }
@@ -17769,16 +17789,13 @@ public class ChatActivityEnterView extends FrameLayout implements
     private static final int ANIMATOR_ID_EPHEMERAL_MESSAGE_VISIBILITY = 3;
 
     private final FactorAnimator animatorInputFieldHeight = new FactorAnimator(ANIMATOR_ID_INPUT_FIELD_HEIGHT, this, ChatListItemAnimator.DEFAULT_INTERPOLATOR, ChatListItemAnimator.DEFAULT_DURATION);
-    // MeeroX v237 (owner report «طفرة بالفقاعة» when the sent message was
-    // a reply): this header show-hide rode the global 0.75x scale (187ms)
-    // while v235 restored the message enter-transition + list add to
-    // natural 250ms - on a reply send the header landed ~63ms early, the
-    // composer shrank 48dp under the mid-flight transition and the bubble
-    // visibly SNAPPED. Pre-stretch via MeeroFastMotion.restore so the
-    // whole send ceremony runs on ONE natural tempo (BoolAnimator's
-    // FactorAnimator wraps a real ValueAnimator, so the global scale
-    // applies and nets exactly 250ms; no-op when the switch is off).
-    private final BoolAnimator animatorTopViewVisibility = new BoolAnimator(ANIMATOR_ID_TOP_VIEW_VISIBILITY, this, ChatListItemAnimator.DEFAULT_INTERPOLATOR, tw.nekomimi.nekogram.MeeroFastMotion.restore(ChatListItemAnimator.DEFAULT_DURATION));
+    // MeeroX v238: the v237 pre-stretch here chased a tempo race, but his
+    // on-device v237 video proved the snap is NOT tempo - the send
+    // ceremony's GEOMETRY was split across the flight (strip reclaim ran
+    // DURING the flight while the bottom re-pin waited for the unlock
+    // frame, so the reveal landed mid-drift). Stock line restored; the
+    // real sequencing fix lives in moveToSendStateRunnable below.
+    private final BoolAnimator animatorTopViewVisibility = new BoolAnimator(ANIMATOR_ID_TOP_VIEW_VISIBILITY, this, ChatListItemAnimator.DEFAULT_INTERPOLATOR, ChatListItemAnimator.DEFAULT_DURATION);
     private final BoolAnimator animatorIsBlockedByStreaming = new BoolAnimator(ANIMATOR_ID_BLOCKED_BY_BOT_TYPING, this, CubicBezierInterpolator.EASE_OUT_QUINT, 320);
     private final BoolAnimator animatorEphemeralMessageVisibility = new BoolAnimator(ANIMATOR_ID_EPHEMERAL_MESSAGE_VISIBILITY, this, CubicBezierInterpolator.EASE_OUT_QUINT, 320);
 
