@@ -11368,7 +11368,15 @@ public class ChatActivityEnterView extends FrameLayout implements
         };
         recordPanel.setClipChildren(false);
         recordPanel.setVisibility(GONE);
-        messageEditTextContainer.addView(recordPanel, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, DEFAULT_HEIGHT));
+        // MeeroX v237 (owner report «كلام الفويس يندمج مع بطاقة الرد»):
+        // the merged iOS reply header (v220) lives INSIDE this container's
+        // top 48dp, so a TOP-anchored record panel painted slide-to-cancel
+        // + timer right on top of the reply card. The sibling
+        // recordedAudioPanel already parks at Gravity.BOTTOM - match it.
+        // Stock mode: the container IS the band, BOTTOM == TOP, zero
+        // visual change. Merged mode: record UI drops into the field's
+        // slot and the header stays clean above it.
+        messageEditTextContainer.addView(recordPanel, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, DEFAULT_HEIGHT, Gravity.BOTTOM));
         recordPanel.setOnTouchListener((v, event) -> true);
         recordPanel.addView(slideText = new SlideTextView(getContext()), LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.NO_GRAVITY, 45, 0, 0, 0));
 
@@ -17761,7 +17769,16 @@ public class ChatActivityEnterView extends FrameLayout implements
     private static final int ANIMATOR_ID_EPHEMERAL_MESSAGE_VISIBILITY = 3;
 
     private final FactorAnimator animatorInputFieldHeight = new FactorAnimator(ANIMATOR_ID_INPUT_FIELD_HEIGHT, this, ChatListItemAnimator.DEFAULT_INTERPOLATOR, ChatListItemAnimator.DEFAULT_DURATION);
-    private final BoolAnimator animatorTopViewVisibility = new BoolAnimator(ANIMATOR_ID_TOP_VIEW_VISIBILITY, this, ChatListItemAnimator.DEFAULT_INTERPOLATOR, ChatListItemAnimator.DEFAULT_DURATION);
+    // MeeroX v237 (owner report «طفرة بالفقاعة» when the sent message was
+    // a reply): this header show-hide rode the global 0.75x scale (187ms)
+    // while v235 restored the message enter-transition + list add to
+    // natural 250ms - on a reply send the header landed ~63ms early, the
+    // composer shrank 48dp under the mid-flight transition and the bubble
+    // visibly SNAPPED. Pre-stretch via MeeroFastMotion.restore so the
+    // whole send ceremony runs on ONE natural tempo (BoolAnimator's
+    // FactorAnimator wraps a real ValueAnimator, so the global scale
+    // applies and nets exactly 250ms; no-op when the switch is off).
+    private final BoolAnimator animatorTopViewVisibility = new BoolAnimator(ANIMATOR_ID_TOP_VIEW_VISIBILITY, this, ChatListItemAnimator.DEFAULT_INTERPOLATOR, tw.nekomimi.nekogram.MeeroFastMotion.restore(ChatListItemAnimator.DEFAULT_DURATION));
     private final BoolAnimator animatorIsBlockedByStreaming = new BoolAnimator(ANIMATOR_ID_BLOCKED_BY_BOT_TYPING, this, CubicBezierInterpolator.EASE_OUT_QUINT, 320);
     private final BoolAnimator animatorEphemeralMessageVisibility = new BoolAnimator(ANIMATOR_ID_EPHEMERAL_MESSAGE_VISIBILITY, this, CubicBezierInterpolator.EASE_OUT_QUINT, 320);
 
