@@ -42,18 +42,54 @@ public final class MeeroFastMotion {
      * stock 1.0x pace while everything else in the app stays snappy. When
      * the switch is off this is an identity and stock math prevails.
      */
+    // MeeroX v239: stretch against the scale ACTUALLY installed, not the
+    // raw switch - while a chat pins the world to 1.0x (chatFocus) this
+    // becomes an identity, and on pre-13 devices where the setDurationScale
+    // reflection fails it no longer plays the ceremony 1/0.75 SLOWER than
+    // stock (latent v235 flaw, same family as his snap reports).
     public static long restore(long durationMs) {
-        return isOn() ? Math.round(durationMs / FAST_SCALE) : durationMs;
+        if (!isOn()) {
+            return durationMs;
+        }
+        final float s = currentScale;
+        return s >= 0.9999f ? durationMs : Math.round(durationMs / s);
     }
 
     public static void apply() {
+        applyRaw(isOn() ? FAST_SCALE : 1.0f);
+    }
+
+    // MeeroX v239 (his bisection: «اصدار 220 ماكو هاي مشكلة… من سوينه
+    // السرعات ضهرت»): a shown ChatActivity pins the WHOLE animator world
+    // to true stock pace - the exact pre-v231 universe he benchmarked as
+    // clean - and leaving the chat hands the boost back to the rest of
+    // the app. Rather than restore()-sealing every remaining ceremony
+    // animator one by one, isolate the stage. No-op with the switch off
+    // (that world is already 1.0x everywhere).
+    public static void chatFocus(boolean insideChat) {
+        if (!isOn()) {
+            return;
+        }
+        applyRaw(insideChat ? 1.0f : FAST_SCALE);
+    }
+
+    // The scale actually live on this process; restore() stretches
+    // against it so chat-pin (1.0x) and reflection-fail-safe (old
+    // Androids) both net DURATIONS to stock instead of over-stretching.
+    private static volatile float currentScale = 1.0f;
+
+    private static void applyRaw(float target) {
         try {
             if (Build.VERSION.SDK_INT >= 33) {
                 java.lang.reflect.Method m = ValueAnimator.class.getDeclaredMethod("setDurationScale", float.class);
-                m.invoke(null, isOn() ? FAST_SCALE : 1.0f);
+                m.invoke(null, target);
+                currentScale = target;
+            } else {
+                currentScale = 1.0f;
             }
         } catch (Throwable ignore) {
-            // cosmetic pace only - never block startup or a settings flip
+            // reflection surface missing -> this device really runs 1.0x
+            currentScale = 1.0f;
         }
     }
 }
