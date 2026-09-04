@@ -1771,15 +1771,6 @@ public class ChatAttachAlert extends BottomSheet implements NotificationCenter.N
                         childTop += AndroidUtilities.navigationBarHeight;
                         childTop += Math.max(keyboardSize, getEmojiPadding());
                     }
-                    // MeeroX v229 (owner report «خط فنص الأسم الحساب»): the
-                    // iOS grabber must ride the SHEET's top edge, not the
-                    // full-window top - getY() is the very function that
-                    // knows where the rounded card currently starts (scroll
-                    // offset, drag, open animation and status-bar clamp all
-                    // included), so piggyback it every layout pass.
-                    if ("meeroGrabber".equals(child.getTag()) && currentAttachLayout != null) {
-                        childTop = (int) getY(currentAttachLayout) + dp(6);
-                    }
                     child.layout(childLeft, childTop, childLeft + width, childTop + height);
                 }
 
