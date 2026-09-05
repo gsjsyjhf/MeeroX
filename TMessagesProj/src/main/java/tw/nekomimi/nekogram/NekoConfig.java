@@ -166,6 +166,10 @@ public class NekoConfig {
     public static ConfigItem meeroMixerBg = addConfig("meeroMixerBg", configTypeInt, 0);
     public static ConfigItem meeroMixerInBubble = addConfig("meeroMixerInBubble", configTypeInt, 0);
     public static ConfigItem meeroIosInputPill = addConfig("meeroIosInputPill", configTypeBool, true);
+    // MeeroX v244 (his approved preview v3: H~45 W=165):
+    // iOS name capsule in the chat glass header - fixed dp(165) width,
+    // long titles marquee inside; OFF = the stock full-width capsule.
+    public static ConfigItem meeroIosCapsule = addConfig("meeroIosCapsule", configTypeBool, false);
     public static ConfigItem meeroIosWaveform = addConfig("meeroIosWaveform", configTypeBool, true);
     public static ConfigItem meeroIosSelection = addConfig("meeroIosSelection", configTypeBool, true);
     public static ConfigItem meeroIosRow = addConfig("meeroIosRow", configTypeBool, true);

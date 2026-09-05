@@ -371,7 +371,9 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
         // titleTextView.setCanHideRightDrawable(false);
         // titleTextView.setRightDrawableOutside(true);
         titleTextView.setRightDrawableOutside(!isCentered());
-        titleTextView.setScrollNonFitText(isCentered());
+        // MeeroX v244: iOS capsule keeps long titles scrolling (else the
+        // fixed width would clip them).
+        titleTextView.setScrollNonFitText(isCentered() || tw.nekomimi.nekogram.NekoConfig.meeroIosCapsule.Bool());
         titleTextView.setPadding(0, dp(6), 0, dp(12));
         addView(titleTextView);
 
@@ -1079,7 +1081,7 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
         }
 
         titleTextView.setText(value);
-        titleTextView.setScrollNonFitText(scrollable || isCentered());
+        titleTextView.setScrollNonFitText(scrollable || isCentered() || tw.nekomimi.nekogram.NekoConfig.meeroIosCapsule.Bool());
         rightDrawableIsScam = false;
         if (scam || fake) {
             rightDrawableIsScam = true;

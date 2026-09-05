@@ -2471,12 +2471,63 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
         }
     }
 
+    // MeeroX v244: iOS name capsule - fixed-width glass pill centered like the
+    // reference screenshot (width dp(165); height stays the stock ~45dp which
+    // his reference actually measures). The glass is drawn with these bounds
+    // every frame; the title holder below keeps the text inside it.
+    private static boolean meeroIosCapsule() {
+        try {
+            return tw.nekomimi.nekogram.NekoConfig.meeroIosCapsule.Bool();
+        } catch (Throwable ignore) {
+            return false;
+        }
+    }
+
+    private int meeroCapSavedW = Integer.MIN_VALUE, meeroCapSavedLm, meeroCapSavedGrav;
+    private boolean meeroCapApplied;
+
+    private void meeroSyncCapsuleLayout() {
+        final boolean want = meeroIosCapsule();
+        if (want == meeroCapApplied) {
+            return;
+        }
+        android.view.View av = null;
+        for (int i = 0; i < getChildCount(); i++) {
+            android.view.View c = getChildAt(i);
+            if (c instanceof org.telegram.ui.Components.ChatAvatarContainer) {
+                av = c;
+                break;
+            }
+        }
+        if (av != null) {
+            FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) av.getLayoutParams();
+            if (want) {
+                if (meeroCapSavedW == Integer.MIN_VALUE) {
+                    meeroCapSavedW = lp.width;
+                    meeroCapSavedLm = lp.leftMargin;
+                    meeroCapSavedGrav = lp.gravity;
+                }
+                lp.width = dp(137);
+                lp.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
+                lp.leftMargin = 0;
+            } else if (meeroCapSavedW != Integer.MIN_VALUE) {
+                lp.width = meeroCapSavedW;
+                lp.gravity = meeroCapSavedGrav;
+                lp.leftMargin = meeroCapSavedLm;
+            }
+            av.setLayoutParams(lp);
+        }
+        meeroCapApplied = want;
+    }
+
     public boolean doNotDrawGlassMenu;
 
     @Override
     protected void dispatchDraw(Canvas canvas) {
         final int p = dp(6);
         final int s = dp(46);
+
+        meeroSyncCapsuleLayout();
 
         final float actionModeFactor = getActionModeFactor();
         final int menuWidthA = hasForcedMenuWidth ? forcedMenuWidth : (int) animatorMenuItemsWidth.getFactor();
@@ -2507,8 +2558,15 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
                 chatAvatarContainer.setTranslationX(translationX);
                 chatAvatarContainer.setPivotX((chatAvatarContainer.getMeasuredWidth()) / 2f - translationX );
             } else {
-                left = leftDefault;
-                right = rightDefault;
+                // MeeroX v244: fixed iOS capsule (his approved mock v3).
+                if (meeroIosCapsule() && !glassModeIsForum) {
+                    final int wCap = Math.min(dp(165), rightDefault - leftDefault);
+                    left = (rightDefault + leftDefault - wCap) / 2;
+                    right = left + wCap;
+                } else {
+                    left = leftDefault;
+                    right = rightDefault;
+                }
             }
 
             glassDrawable.setBounds(left, t, right, b);
