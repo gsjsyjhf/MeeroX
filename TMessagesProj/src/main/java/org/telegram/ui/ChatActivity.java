@@ -49955,6 +49955,13 @@ public class ChatActivity extends BaseFragment implements
     }
 
     private boolean canShowCenteredTitle(ChatActivity parentFragment) {
+        // MeeroX v245: while the iOS capsule is on it owns the chat header
+        // (name capsule + isolated avatar bubble, one switch). The centered
+        // -title option is ignored here so the two never fight; capsule OFF
+        // restores the stock behaviour including this option. (his order)
+        if (NekoConfig.meeroIosCapsule.Bool()) {
+            return false;
+        }
         if (!NaConfig.INSTANCE.getCenterActionBarTitle().Bool()) {
             return false;
         }
