@@ -16952,6 +16952,18 @@ public class ChatActivityEnterView extends FrameLayout implements
             checkBackgroundRect();
             if (isNewDesignSendButton) {
                 canvas.drawRoundRect(backgroundRect, dp(RADIUS), dp(RADIUS), backgroundPaint);
+                // MeeroX v242 (his v241 verdict: no ring at all + same size):
+                // the disc that ACTUALLY renders in normal chats is this
+                // backgroundRect (38dp), NOT the openProgress block where the
+                // v241 ring lived. Ring now hugs this very disc, so it shows
+                // in every state. Same iOS-26 spec: thin white rim.
+                if (meeroIosRing) {
+                    meeroRingPaint.setColor(0xFFFFFFFF);
+                    meeroRingPaint.setStyle(Paint.Style.STROKE);
+                    meeroRingPaint.setStrokeWidth(dp(1.7f));
+                    canvas.drawCircle(backgroundRect.centerX(), backgroundRect.centerY(),
+                            Math.min(backgroundRect.width(), backgroundRect.height()) / 2.0f + dp(0.85f), meeroRingPaint);
+                }
             }
 
             final boolean inactive = isInactive();
@@ -17050,12 +17062,6 @@ public class ChatActivityEnterView extends FrameLayout implements
                     blurredBackgroundDrawable.draw(canvas);
                 }
 
-                if (meeroIosRing) {
-                    meeroRingPaint.setColor(0xFFFFFFFF);
-                    meeroRingPaint.setStyle(Paint.Style.STROKE);
-                    meeroRingPaint.setStrokeWidth(dp(2));
-                    canvas.drawCircle(bCX, bCY, Math.min(w, h) / 2.0f + dp(1), meeroRingPaint);
-                }
                 if (!isNewDesignSendButton) {
                     canvas.drawPath(path, backgroundPaint);
                 }
@@ -17410,7 +17416,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                 // preview option 2). schedule & story bars fall into the
                 // other branch and stay 100% stock.
                 sendButton.setMeeroIosRing(true);
-                sendButton.setMeeroGlyphScale(0.95f);
+                sendButton.setMeeroGlyphScale(0.82f);
             } else {
                 sendButton.setResourceId(isInScheduleMode() ? R.drawable.input_schedule : R.drawable.send_plane_24);
                 sendButton.setMeeroIosRing(false);
