@@ -8071,10 +8071,10 @@ public class Theme {
             dialogs_muteDrawable = resources.getDrawable(R.drawable.list_mute).mutate();
             dialogs_unmuteDrawable = resources.getDrawable(R.drawable.list_unmute).mutate();
             dialogs_hiddenDrawable = resources.getDrawable(R.drawable.mini_ephemeral_hidden_16).mutate();
-            dialogs_verifiedDrawable = resources.getDrawable(R.drawable.verified_area).mutate();
+            dialogs_verifiedDrawable = new org.telegram.ui.Components.MeeroVerifiedScaledDrawable(resources.getDrawable(R.drawable.verified_area).mutate());
             dialogs_scamDrawable = new ScamDrawable(11, 0);
             dialogs_fakeDrawable = new ScamDrawable(11, 1);
-            dialogs_verifiedCheckDrawable = resources.getDrawable(R.drawable.verified_check).mutate();
+            dialogs_verifiedCheckDrawable = new org.telegram.ui.Components.MeeroVerifiedScaledDrawable(resources.getDrawable(R.drawable.verified_check).mutate());
 
             dialogs_mentionDrawable = resources.getDrawable(R.drawable.filled_chatlist_mention).mutate();
             dialogs_reactionsMentionDrawable = resources.getDrawable(R.drawable.filled_chatlist_reaction).mutate();
@@ -9221,8 +9221,8 @@ public class Theme {
 
             Resources resources = context.getResources();
 
-            profile_verifiedDrawable = resources.getDrawable(R.drawable.verified_area).mutate();
-            profile_verifiedCheckDrawable = resources.getDrawable(R.drawable.verified_check).mutate();
+            profile_verifiedDrawable = new org.telegram.ui.Components.MeeroVerifiedScaledDrawable(resources.getDrawable(R.drawable.verified_area).mutate());
+            profile_verifiedCheckDrawable = new org.telegram.ui.Components.MeeroVerifiedScaledDrawable(resources.getDrawable(R.drawable.verified_check).mutate());
 
             applyProfileTheme();
         }
@@ -9335,6 +9335,19 @@ public class Theme {
     }
 
     public static int getColor(int key, ResourcesProvider provider) {
+        // MeeroX v248 (his order: official color): the verified-check
+        // colors are pinned to Telegram's official defaults in every theme.
+        // (the MeeroX theme mixer was re-tinting them to the accent color,
+        // so the developer badge did not look like the official check)
+        if (key == key_chats_verifiedBackground) {
+            return 0xff33a8e6;
+        }
+        if (key == key_profile_verifiedBackground) {
+            return 0xff229af0;
+        }
+        if (key == key_chats_verifiedCheck || key == key_profile_verifiedCheck) {
+            return 0xffffffff;
+        }
         if (provider != null) {
             return provider.getColor(key);
         }
@@ -9354,6 +9367,19 @@ public class Theme {
     }
 
     public static int getColor(int key, boolean[] isDefault, boolean ignoreAnimation) {
+        // MeeroX v248 (his order: official color): the verified-check
+        // colors are pinned to Telegram's official defaults in every theme.
+        // (the MeeroX theme mixer was re-tinting them to the accent color,
+        // so the developer badge did not look like the official check)
+        if (key == key_chats_verifiedBackground) {
+            return 0xff33a8e6;
+        }
+        if (key == key_profile_verifiedBackground) {
+            return 0xff229af0;
+        }
+        if (key == key_chats_verifiedCheck || key == key_profile_verifiedCheck) {
+            return 0xffffffff;
+        }
         if (!ignoreAnimation && animatingColors != null) {
             int index = animatingColors.indexOfKey(key);
             if (index >= 0) {

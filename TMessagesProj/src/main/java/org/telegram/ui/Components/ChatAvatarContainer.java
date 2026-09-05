@@ -1092,9 +1092,9 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
                 rightDrawableIsScamOrVerified = true;
             }
         } else if (verified) {
-            verifiedBackground = getResources().getDrawable(R.drawable.verified_area).mutate();
+            verifiedBackground = new MeeroVerifiedScaledDrawable(getResources().getDrawable(R.drawable.verified_area).mutate());
             verifiedBackground.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_profile_verifiedBackground), PorterDuff.Mode.MULTIPLY));
-            verifiedCheck = getResources().getDrawable(R.drawable.verified_check).mutate();
+            verifiedCheck = new MeeroVerifiedScaledDrawable(getResources().getDrawable(R.drawable.verified_check).mutate());
             verifiedCheck.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_profile_verifiedCheck), PorterDuff.Mode.MULTIPLY));
             Drawable verifiedDrawable = new CombinedDrawable(verifiedBackground, verifiedCheck);
             titleTextView.setRightDrawable2(verifiedDrawable);
