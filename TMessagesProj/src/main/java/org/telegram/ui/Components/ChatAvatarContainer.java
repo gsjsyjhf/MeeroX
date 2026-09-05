@@ -87,10 +87,6 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
     private Integer storiesForceState;
     private int avatarSizeInDp = 42;
     public BackupImageView avatarImageView;
-    // MeeroX v245: driven by ActionBar while the iOS capsule is active - the
-    // avatar leaves the title holder and docks into its own glass bubble.
-    public boolean meeroCapsuleBubble;
-    public int meeroBubbleCxAbs = Integer.MIN_VALUE;
     private ActionBarMenuItem avatarOptionsMenuItem;
     private boolean avatarImageIsHidden;
     private SimpleTextView titleTextView;
@@ -375,9 +371,7 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
         // titleTextView.setCanHideRightDrawable(false);
         // titleTextView.setRightDrawableOutside(true);
         titleTextView.setRightDrawableOutside(!isCentered());
-        // MeeroX v244: iOS capsule keeps long titles scrolling (else the
-        // fixed width would clip them).
-        titleTextView.setScrollNonFitText(isCentered() || tw.nekomimi.nekogram.NekoConfig.meeroIosCapsule.Bool());
+        titleTextView.setScrollNonFitText(isCentered());
         titleTextView.setPadding(0, dp(6), 0, dp(12));
         addView(titleTextView);
 
@@ -787,11 +781,8 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         int padding = isCentered() ? dp(isPreviewMode() ? 35 : 10) : 0;
         final int width = MeasureSpec.getSize(widthMeasureSpec);
-        final int availableWidth = width - dp(((avatarImageView.getVisibility() == VISIBLE && !meeroCapsuleBubble || isCentered()) ? 54 : 0) + 16);
-        // MeeroX v245: inside its bubble the avatar fills it nearly edge to
-        // edge (his sealed preview: inner ~84% of the glass circle).
-        final int meeroAvSize = meeroCapsuleBubble ? dp(avatarSizeInDp) + dp(6) : dp(avatarSizeInDp) - 2;
-        avatarImageView.measure(MeasureSpec.makeMeasureSpec(meeroAvSize, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(meeroAvSize, MeasureSpec.EXACTLY));
+        final int availableWidth = width - dp(((avatarImageView.getVisibility() == VISIBLE || isCentered()) ? 54 : 0) + 16);
+        avatarImageView.measure(MeasureSpec.makeMeasureSpec(dp(avatarSizeInDp) - 2, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(dp(avatarSizeInDp) - 2, MeasureSpec.EXACTLY));
         titleTextView.measure(MeasureSpec.makeMeasureSpec(availableWidth - padding, MeasureSpec.AT_MOST), MeasureSpec.makeMeasureSpec(dp(24 + 8), MeasureSpec.AT_MOST));
         if (subtitleTextView != null) {
             subtitleTextView.measure(MeasureSpec.makeMeasureSpec(availableWidth - padding, MeasureSpec.AT_MOST), MeasureSpec.makeMeasureSpec(dp(20), MeasureSpec.AT_MOST));
@@ -900,11 +891,6 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
         if (isCentered()) {
             avatarLeft = getWidth() - leftPadding - avatarImageView.getMeasuredWidth() - 1;
         }
-        // MeeroX v245: dock the avatar into the isolated glass bubble that
-        // ActionBar drew this frame (absolute center handed down per frame).
-        if (meeroCapsuleBubble && meeroBubbleCxAbs != Integer.MIN_VALUE && avatarImageView.getVisibility() == VISIBLE) {
-            avatarLeft = meeroBubbleCxAbs - getLeft() - avatarImageView.getMeasuredWidth() / 2;
-        }
         avatarImageView.layout(avatarLeft, 1 + viewTop, avatarLeft + avatarImageView.getMeasuredWidth(), 1 + viewTop + avatarImageView.getMeasuredHeight());
 
         int l = leftPadding + (avatarImageView.getVisibility() == VISIBLE && !isCentered() ? dp(glassMode ? 49.66f : 55) : (isCentered() ? 0 : dp(glassMode ? 13 : 1))) + (isCentered() ? 0 : rightAvatarPadding);
@@ -912,13 +898,6 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
             l += dp(AndroidUtilities.isTablet() ? 80 : 72) / 2;
         } else if (isCentered()) {
             l += dp(6);
-        }
-        // MeeroX v245: capsule = title zone only, texts centred inside it.
-        final int lTitle = meeroCapsuleBubble ? Math.max(0, (getWidth() - titleTextView.getMeasuredWidth()) / 2) : l;
-        final int meeroSubW = subtitleTextView != null ? subtitleTextView.getMeasuredWidth() : (animatedSubtitleTextView != null ? animatedSubtitleTextView.getMeasuredWidth() : 0);
-        final int lSub = meeroCapsuleBubble ? Math.max(0, (getWidth() - meeroSubW) / 2) : l;
-        if (meeroCapsuleBubble) {
-            l = lTitle;
         }
         SimpleTextView titleTextLargerCopyView = this.titleTextLargerCopyView.get();
         if (getSubtitleTextView().getVisibility() != GONE) {
@@ -933,7 +912,7 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
             }
         }
         if (communityItem != null) {
-            final int communityItemLeft = isCentered() || meeroCapsuleBubble ? avatarLeft + dp(28) : leftPadding + dp(29f);
+            final int communityItemLeft = isCentered() ? avatarLeft + dp(28) : leftPadding + dp(29f);
             communityItem.layout(
                 communityItemLeft,
                 viewTop + dp(27.33f),
@@ -941,7 +920,7 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
                 viewTop + dp(27.33f) + communityItem.getMeasuredHeight());
         }
         if (timeItem != null) {
-            final int timeItemLeft = isCentered() || meeroCapsuleBubble ? avatarLeft + dp(18.333f) : leftPadding + dp(19.333f);
+            final int timeItemLeft = isCentered() ? avatarLeft + dp(18.333f) : leftPadding + dp(19.333f);
             timeItem.layout(
                 timeItemLeft,
                 viewTop - dp(8),
@@ -949,17 +928,16 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
                 viewTop - dp(8) + timeItem.getMeasuredHeight()
             );
         }
-        final int meeroStarL = meeroCapsuleBubble ? avatarLeft + dp(28) : leftPadding + dp(28);
         if (starBgItem != null) {
-            starBgItem.layout(meeroStarL, viewTop + dp(24), meeroStarL + starBgItem.getMeasuredWidth(), viewTop + dp(24) + starBgItem.getMeasuredHeight());
+            starBgItem.layout(leftPadding + dp(28), viewTop + dp(24), leftPadding + dp(28) + starBgItem.getMeasuredWidth(), viewTop + dp(24) + starBgItem.getMeasuredHeight());
         }
         if (starFgItem != null) {
-            starFgItem.layout(meeroStarL, viewTop + dp(24), meeroStarL + starFgItem.getMeasuredWidth(), viewTop + dp(24) + starFgItem.getMeasuredHeight());
+            starFgItem.layout(leftPadding + dp(28), viewTop + dp(24), leftPadding + dp(28) + starFgItem.getMeasuredWidth(), viewTop + dp(24) + starFgItem.getMeasuredHeight());
         }
         if (subtitleTextView != null) {
-            subtitleTextView.layout(meeroCapsuleBubble ? lSub : l, subtitleTop, (meeroCapsuleBubble ? lSub : l) + subtitleTextView.getMeasuredWidth(), subtitleTop + subtitleTextView.getTextHeight());
+            subtitleTextView.layout(l, subtitleTop, l + subtitleTextView.getMeasuredWidth(), subtitleTop + subtitleTextView.getTextHeight());
         } else if (animatedSubtitleTextView != null) {
-            animatedSubtitleTextView.layout(meeroCapsuleBubble ? lSub : l, subtitleTop, (meeroCapsuleBubble ? lSub : l) + animatedSubtitleTextView.getMeasuredWidth(), subtitleTop + animatedSubtitleTextView.getTextHeight());
+            animatedSubtitleTextView.layout(l, subtitleTop, l + animatedSubtitleTextView.getMeasuredWidth(), subtitleTop + animatedSubtitleTextView.getTextHeight());
         }
         SimpleTextView subtitleTextLargerCopyView = this.subtitleTextLargerCopyView.get();
         if (subtitleTextLargerCopyView != null) {
@@ -1101,7 +1079,7 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
         }
 
         titleTextView.setText(value);
-        titleTextView.setScrollNonFitText(scrollable || isCentered() || tw.nekomimi.nekogram.NekoConfig.meeroIosCapsule.Bool());
+        titleTextView.setScrollNonFitText(scrollable || isCentered());
         rightDrawableIsScam = false;
         if (scam || fake) {
             rightDrawableIsScam = true;

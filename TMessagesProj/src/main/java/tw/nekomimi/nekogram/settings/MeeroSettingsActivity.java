@@ -147,9 +147,6 @@ public class MeeroSettingsActivity extends BaseNekoXSettingsActivity {
     // bottom-bar chats popup (menuBlur above frosts the menu panel itself).
     private final AbstractConfigCell chatsMenuFogRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroChatsMenuFog, MeeroStrings.s(65)));
     private final AbstractConfigCell iosInputPillRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroIosInputPill, MeeroStrings.s(138)));
-    // MeeroX v244 (approved preview v3): iOS name capsule row - custom title
-    // so the MeeroStrings vault stays untouched.
-    private final AbstractConfigCell iosCapsuleRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroIosCapsule, null, "كبسولة iOS للاسم"));
     // MeeroX v142: approved mock "preview-v142" - the iPhone chat header
     // (centered name/status pill + detached photo circle at the edge; tools
     // behind the photo tap / long-press glass menu).

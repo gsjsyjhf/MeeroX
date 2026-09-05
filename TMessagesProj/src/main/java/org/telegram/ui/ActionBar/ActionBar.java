@@ -2471,109 +2471,12 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
         }
     }
 
-    // MeeroX v244: iOS name capsule - fixed-width glass pill centered like the
-    // reference screenshot (width dp(165); height stays the stock ~45dp which
-    // his reference actually measures). The glass is drawn with these bounds
-    // every frame; the title holder below keeps the text inside it.
-    private static boolean meeroIosCapsule() {
-        try {
-            return tw.nekomimi.nekogram.NekoConfig.meeroIosCapsule.Bool();
-        } catch (Throwable ignore) {
-            return false;
-        }
-    }
-
-    private int meeroCapSavedW = Integer.MIN_VALUE, meeroCapSavedLm, meeroCapSavedRm, meeroCapSavedGrav;
-    private boolean meeroCapApplied;
-    private org.telegram.ui.Components.ChatAvatarContainer meeroCapChild;
-    private int meeroBubbleCx = Integer.MIN_VALUE;
-
-    private org.telegram.ui.Components.ChatAvatarContainer meeroFindCapChild() {
-        for (int i = 0; i < getChildCount(); i++) {
-            android.view.View c = getChildAt(i);
-            if (c instanceof org.telegram.ui.Components.ChatAvatarContainer) {
-                return (org.telegram.ui.Components.ChatAvatarContainer) c;
-            }
-        }
-        return null;
-    }
-
-    // MeeroX v245: the isolated-avatar bubble exists only in the plain-child
-    // mode (regular chats) while the fixed capsule really draws.
-    private void meeroSyncBubbleFlag() {
-        if (meeroCapChild == null) {
-            meeroCapChild = meeroFindCapChild();
-        }
-        if (meeroCapChild == null) {
-            return;
-        }
-        final boolean bubble = meeroCapApplied
-                && chatAvatarContainer == null
-                && !glassModeIsForum
-                && glassDrawable != null
-                && !glassOnlyBack;
-        if (meeroCapChild.meeroCapsuleBubble != bubble) {
-            meeroCapChild.meeroCapsuleBubble = bubble;
-            meeroCapChild.requestLayout();
-        }
-    }
-
-    // MeeroX v245: draw condition for the isolated-avatar glass bubble.
-    private boolean meeroCapsuleBubbleActive() {
-        return meeroCapApplied
-                && chatAvatarContainer == null
-                && !glassModeIsForum
-                && glassDrawableBack != null
-                && meeroCapChild != null
-                && meeroCapChild.meeroCapsuleBubble
-                && meeroCapChild.getVisibility() == View.VISIBLE
-                && meeroCapChild.avatarImageView != null
-                && meeroCapChild.avatarImageView.getVisibility() == View.VISIBLE;
-    }
-
-    private void meeroSyncCapsuleLayout() {
-        final boolean want = meeroIosCapsule();
-        if (want == meeroCapApplied) {
-            meeroSyncBubbleFlag();
-            return;
-        }
-        android.view.View av = meeroFindCapChild();
-        meeroCapChild = (org.telegram.ui.Components.ChatAvatarContainer) av;
-        if (av != null) {
-            FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) av.getLayoutParams();
-            if (want) {
-                if (meeroCapSavedW == Integer.MIN_VALUE) {
-                    meeroCapSavedW = lp.width;
-                    meeroCapSavedLm = lp.leftMargin;
-                    meeroCapSavedRm = lp.rightMargin;
-                    meeroCapSavedGrav = lp.gravity;
-                }
-                lp.width = dp(137);
-                lp.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
-                lp.leftMargin = 0;
-                // v245 fix: v244 left the stock 52dp right margin in place,
-                // which shifted the title zone ~26dp left of the glass.
-                lp.rightMargin = 0;
-            } else if (meeroCapSavedW != Integer.MIN_VALUE) {
-                lp.width = meeroCapSavedW;
-                lp.gravity = meeroCapSavedGrav;
-                lp.leftMargin = meeroCapSavedLm;
-                lp.rightMargin = meeroCapSavedRm;
-            }
-            av.setLayoutParams(lp);
-        }
-        meeroCapApplied = want;
-        meeroSyncBubbleFlag();
-    }
-
     public boolean doNotDrawGlassMenu;
 
     @Override
     protected void dispatchDraw(Canvas canvas) {
         final int p = dp(6);
         final int s = dp(46);
-
-        meeroSyncCapsuleLayout();
 
         final float actionModeFactor = getActionModeFactor();
         final int menuWidthA = hasForcedMenuWidth ? forcedMenuWidth : (int) animatorMenuItemsWidth.getFactor();
@@ -2604,34 +2507,12 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
                 chatAvatarContainer.setTranslationX(translationX);
                 chatAvatarContainer.setPivotX((chatAvatarContainer.getMeasuredWidth()) / 2f - translationX );
             } else {
-                // MeeroX v244: fixed iOS capsule (his approved mock v3).
-                if (meeroIosCapsule() && !glassModeIsForum) {
-                    final int wCap = Math.min(dp(165), rightDefault - leftDefault);
-                    left = (rightDefault + leftDefault - wCap) / 2;
-                    right = left + wCap;
-                } else {
-                    left = leftDefault;
-                    right = rightDefault;
-                }
+                left = leftDefault;
+                right = rightDefault;
             }
 
             glassDrawable.setBounds(left, t, right, b);
             glassDrawable.draw(canvas);
-
-            // MeeroX v245 (his approved sealed preview): isolated avatar in
-            // its own glass bubble, docked right before the menu circle.
-            if (meeroCapsuleBubbleActive()) {
-                final int bx = getWidth() - rightOffset - (s + p * 2) - dp(8);
-                meeroBubbleCx = bx + (s + p * 2) / 2;
-                meeroCapChild.meeroBubbleCxAbs = meeroBubbleCx;
-                glassDrawableBack.setBounds(bx, t, bx + s + p * 2, b);
-                final int prevAlpha = glassDrawableBack.getAlpha();
-                glassDrawableBack.setAlpha(255);
-                glassDrawableBack.draw(canvas);
-                glassDrawableBack.setAlpha(prevAlpha);
-            } else if (meeroCapChild != null) {
-                meeroCapChild.meeroBubbleCxAbs = Integer.MIN_VALUE;
-            }
         }
         if (glassDrawableBack != null && hasBackButton) {
             glassDrawableBack.setBounds(0, t, s + p * 2, b);
