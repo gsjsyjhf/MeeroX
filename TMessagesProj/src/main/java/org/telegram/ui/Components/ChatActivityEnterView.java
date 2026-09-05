@@ -16747,6 +16747,29 @@ public class ChatActivityEnterView extends FrameLayout implements
             this.circleHeight = height;
         }
 
+        // MeeroX v241 (his pick - preview option 2, fallback option 1): the
+        // iOS-26 send look. A thin white ring hugs the blue disc and the
+        // plane is drawn at ~52% of the disc diameter so the glyph no longer
+        // crowds the circle. Off unless the iOS composer styles this button
+        // (schedule / story comment bars keep stock: ring false, scale 1).
+        private boolean meeroIosRing;
+        private float meeroGlyphScale = 1f;
+        private final Paint meeroRingPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+        public void setMeeroIosRing(boolean ring) {
+            if (meeroIosRing != ring) {
+                meeroIosRing = ring;
+                invalidate();
+            }
+        }
+
+        public void setMeeroGlyphScale(float scale) {
+            if (meeroGlyphScale != scale) {
+                meeroGlyphScale = scale;
+                invalidate();
+            }
+        }
+
         public int getCircleWidth() {
             if (circleWidth >= 0)
                 return circleWidth;
@@ -16961,7 +16984,15 @@ public class ChatActivityEnterView extends FrameLayout implements
                 final float s = lerp(0.35f, 1.0f, appear);
                 canvas.scale(s, s, x + drawable.getIntrinsicWidth() / 2f, y + drawable.getIntrinsicHeight() / 2f);
                 canvas.rotate(60 * (1f - appear), x + drawable.getIntrinsicWidth() / 2f, y + drawable.getIntrinsicHeight() / 2f);
-                drawable.setBounds(x, y, x + drawable.getIntrinsicWidth(), y + drawable.getIntrinsicHeight());
+                if (meeroGlyphScale == 1f) {
+                    drawable.setBounds(x, y, x + drawable.getIntrinsicWidth(), y + drawable.getIntrinsicHeight());
+                } else {
+                    final float gw2 = drawable.getIntrinsicWidth() * meeroGlyphScale;
+                    final float gh2 = drawable.getIntrinsicHeight() * meeroGlyphScale;
+                    final float gcx2 = x + drawable.getIntrinsicWidth() / 2.0f;
+                    final float gcy2 = y + drawable.getIntrinsicHeight() / 2.0f;
+                    drawable.setBounds((int) (gcx2 - gw2 / 2.0f), (int) (gcy2 - gh2 / 2.0f), (int) (gcx2 + gw2 / 2.0f), (int) (gcy2 + gh2 / 2.0f));
+                }
                 drawable.setAlpha((int) (0xFF * (1.0f - priceProgress)));
                 drawable.draw(canvas);
                 canvas.restore();
@@ -17019,6 +17050,12 @@ public class ChatActivityEnterView extends FrameLayout implements
                     blurredBackgroundDrawable.draw(canvas);
                 }
 
+                if (meeroIosRing) {
+                    meeroRingPaint.setColor(0xFFFFFFFF);
+                    meeroRingPaint.setStyle(Paint.Style.STROKE);
+                    meeroRingPaint.setStrokeWidth(dp(2));
+                    canvas.drawCircle(bCX, bCY, Math.min(w, h) / 2.0f + dp(1), meeroRingPaint);
+                }
                 if (!isNewDesignSendButton) {
                     canvas.drawPath(path, backgroundPaint);
                 }
@@ -17059,10 +17096,16 @@ public class ChatActivityEnterView extends FrameLayout implements
                     priceText.draw(canvas);
                 }
                 drawableInverse.setAlpha((int) (0xFF * (1f - loadingShown) * (1f - priceProgress)));
-                if (circleWidth > 0) {
-                    drawableInverse.setBounds((int) (right - w / 2.0f - drawableInverse.getIntrinsicWidth() / 2.0f), (int) (cy - drawableInverse.getIntrinsicHeight() / 2.0f), (int) (right - w / 2.0f + drawableInverse.getIntrinsicWidth() / 2.0f), (int) (cy + drawableInverse.getIntrinsicHeight() / 2.0f));
-                } else {
-                    drawableInverse.setBounds(x, y, x + drawable.getIntrinsicWidth(), y + drawable.getIntrinsicHeight());
+                {
+                    final float gw = drawableInverse.getIntrinsicWidth() * meeroGlyphScale;
+                    final float gh = drawableInverse.getIntrinsicHeight() * meeroGlyphScale;
+                    if (circleWidth > 0) {
+                        drawableInverse.setBounds((int) (right - w / 2.0f - gw / 2.0f), (int) (cy - gh / 2.0f), (int) (right - w / 2.0f + gw / 2.0f), (int) (cy + gh / 2.0f));
+                    } else {
+                        final float gcx = x + drawable.getIntrinsicWidth() / 2.0f;
+                        final float gcy = y + drawable.getIntrinsicHeight() / 2.0f;
+                        drawableInverse.setBounds((int) (gcx - gw / 2.0f), (int) (gcy - gh / 2.0f), (int) (gcx + gw / 2.0f), (int) (gcy + gh / 2.0f));
+                    }
                 }
                 drawableInverse.draw(canvas);
                 if (loadingShown > 0) {
@@ -17363,8 +17406,15 @@ public class ChatActivityEnterView extends FrameLayout implements
                 // (white plane glyph extracted from the official repo), not
                 // a generic material arrow.
                 sendButton.setResourceId(R.drawable.meerox_ios_send);
+                // v241: same sync point arms the iOS-26 disc trim (his pick:
+                // preview option 2). schedule & story bars fall into the
+                // other branch and stay 100% stock.
+                sendButton.setMeeroIosRing(true);
+                sendButton.setMeeroGlyphScale(0.95f);
             } else {
                 sendButton.setResourceId(isInScheduleMode() ? R.drawable.input_schedule : R.drawable.send_plane_24);
+                sendButton.setMeeroIosRing(false);
+                sendButton.setMeeroGlyphScale(1f);
             }
         } catch (Throwable ignore) {
         }
