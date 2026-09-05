@@ -2564,6 +2564,10 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
 
         private int unreadCount = 0;
         private RectF rect = new RectF();
+        // MeeroX v243 (his pick - preview option 2): iPhone-red unread chip.
+        // Own paint: Theme.dialogs_countPaint is shared app-wide (dialogs
+        // list, folders, etc.) and must keep the accent blue.
+        private final Paint meeroBadgePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
         @Override
         public void onDraw(Canvas canvas) {
@@ -2572,6 +2576,10 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
                 return;
 
             Paint paint = Theme.dialogs_countPaint;
+            // MeeroX v243: same red Telegram-iOS draws for this chip (#FF3B30),
+            // day & night; text keeps the stock white dialogs_countTextPaint.
+            meeroBadgePaint.setColor(0xFFFF3B30);
+            paint = meeroBadgePaint;
             String unreadCountString = unreadCount > 99 ? "99+" : Integer.toString(unreadCount);
             int countWidth = Math.max(AndroidUtilities.dp(12), (int) Math.ceil(Theme.dialogs_countTextPaint.measureText(unreadCountString)));
             int countLeft = getMeasuredWidth() - countWidth - AndroidUtilities.dp(20);
