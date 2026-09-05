@@ -31439,10 +31439,6 @@ public class ChatActivity extends BaseFragment implements
     @Override
     public void onResume() {
         super.onResume();
-        // MeeroX v239: chat-screen animation isolation - while this chat
-        // is on stage the composer/list ceremony runs at true pre-v231
-        // stock pace (his clean benchmark); the boost returns on pause.
-        tw.nekomimi.nekogram.MeeroFastMotion.chatFocus(true);
         // MeeroX v106: chat-lock gate - biometric/device lock on every entry.
         tw.nekomimi.nekogram.MeeroChatLock.maybePromptGate(this);
         // MeeroX v142: converge the iOS-clean chat header (icons hidden,
@@ -31681,8 +31677,6 @@ public class ChatActivity extends BaseFragment implements
     @Override
     public void onPause() {
         super.onPause();
-        // MeeroX v239: hand the 0.75x boost back to the rest of the app.
-        tw.nekomimi.nekogram.MeeroFastMotion.chatFocus(false);
         scrolling = false;
         if (scrimPopupWindow != null) {
             scrimPopupWindow.setPauseNotifications(false);

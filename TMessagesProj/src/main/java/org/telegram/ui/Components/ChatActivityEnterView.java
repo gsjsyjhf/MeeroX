@@ -8884,27 +8884,22 @@ public class ChatActivityEnterView extends FrameLayout implements
                         messageTransitionIsRunning = false;
                         AndroidUtilities.runOnUIThread(moveToSendStateRunnable = () -> {
                             moveToSendStateRunnable = null;
-                            // MeeroX v238 (his «طفرة بالفقاعة» on reply sends,
-                            // proven by frame-tracking his on-device video):
-                            // the 48dp reply-strip reclaim must NOT run during
-                            // the outgoing flight. When it does, the stack
-                            // drifts while the ghost flies and the unlock-frame
-                            // re-pin snaps everything back exactly as the real
-                            // bubble is revealed. Defer the reclaim to the
-                            // flight's own net length (DEFAULT_DURATION real ms
-                            // - the transition nets to the same value in every
-                            // switch state): the strip folds UNDER an already
-                            // -stable bubble, same look as a tall incoming
-                            // message landing. Guard: never close a reply the
-                            // user opened while this waited. (The card stays
-                            // visible during the flight - upstream did the same
-                            // via its 200ms delay, and iOS crossfades the
-                            // preview over the flight too.)
-                            AndroidUtilities.runOnUIThread(() -> {
-                                if (replyingQuote == null && replyingMessageObject == null && editingMessageObject == null) {
-                                    hideTopView(true);
-                                }
-                            }, ChatListItemAnimator.DEFAULT_DURATION);
+                            // MeeroX v240 (his standing «طفرة» + his order
+                            // «خليه نفس رسمي»): the snap survived tempo-align
+                            // (v237), reclaim-defer (v238) and whole-chat pace
+                            // isolation (v239), so it is structural: the
+                            // transition draws the ghost toward the FUTURE
+                            // post-reclaim slot (listViewTargetBottomPadding)
+                            // while the real list padding catches up late, and
+                            // the reveal then unmasks the cell ~48dp off. The
+                            // v238 defer only WIDENED that gap. INSTANT
+                            // reclaim (animated=false) settles island height +
+                            // list padding to FINAL in the same frame the
+                            // message is inserted - ghost end == real cell ==
+                            // final, zero post-reveal geometry. This is the
+                            // iOS look (preview gone when the message leaves)
+                            // and the exact stock net visual he asked for.
+                            hideTopView(false);   // INSTANT - stock calls hideTopView(true) here; everything else in this runnable is untouched
                             if (messageEditText != null) {
                                 messageEditText.setText("");
                             }
