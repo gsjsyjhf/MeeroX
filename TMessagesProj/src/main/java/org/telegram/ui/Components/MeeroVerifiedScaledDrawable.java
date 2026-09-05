@@ -7,7 +7,7 @@ import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 
 /**
- * MeeroX v248 — verified badge enlargement (his pick: preview option 1 = x1.35).
+ * MeeroX v248 — verified badge enlargement (his final slider pick = 118% (1.18x)).
  *
  * Wraps the stock verified area/check drawables: reports a scaled intrinsic
  * size (so every cell that reserves space for the badge grows with it
@@ -21,7 +21,7 @@ import android.graphics.drawable.Drawable;
  */
 public class MeeroVerifiedScaledDrawable extends Drawable {
 
-    public static float scale = 1.35f;
+    public static float scale = 1.18f;
 
     private final Drawable inner;
 
