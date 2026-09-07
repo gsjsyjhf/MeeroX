@@ -4044,10 +4044,8 @@ public class ChatActivity extends BaseFragment implements
         if (inPreviewMode) {
             actionBar.setBackButtonDrawable(null);
         } else {
-            // MeeroX v254 (cherry-parity): clean stick-less back button when centered + unread counter shows instantly on open
-            BackDrawable backDrawable = new BackDrawable(isReport());
-            backDrawable.setShowStick(!isTitleCentered());
-            actionBar.setBackButtonDrawable(backDrawable);
+            // MeeroX v254 (cherry-parity): unread counter on the back button shows instantly on chat open
+            actionBar.setBackButtonDrawable(new BackDrawable(isReport()));
             actionBar.unreadBadgeSetCount(getMessagesStorage().getMainUnreadCount());
         }
 
