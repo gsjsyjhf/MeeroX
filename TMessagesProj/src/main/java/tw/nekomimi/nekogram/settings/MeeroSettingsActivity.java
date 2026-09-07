@@ -151,13 +151,21 @@ public class MeeroSettingsActivity extends BaseNekoXSettingsActivity {
     // visible ONLY on the dev account's own device (@i55544). Everyone else
     // just renders the default tiled-name pattern - no row, no trace.
     private final AbstractConfigCell devProfileBgRow = meeroIsDevAccount() ? cellGroup.appendCell(new ConfigCellSelectBox("MeeroDevProfileBg", NekoConfig.meeroDevProfileBg, new String[]{"نقشة اسمك بالخلفية", "صورة البروفايل خلفية", "إيقاف الخلفية"}, null)) : null;
-    // MeeroX v254 (his sealed order): Cherrygram chat-header pack, ported from
-    // github.com/arsLan4k1390/Cherrygram — replaces our old broken centering
-    // with Cherrygram's own implementation.
-    private final AbstractConfigCell cherryTitleRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroCherryTitle, "كبسولة زجاجية بالوسط على طريقة Cherrygram نفسها، تتبديل بدون restart", "توسيط عنوان الدردشة ✦ Cherrygram"));
-    private final AbstractConfigCell cherryAdaptiveRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroCherryAdaptive, "الكبسولة تتسع وتضيق بعرض الاسم والحالة بدل العرض الثابت", "عرض البابل متكيّف (Adaptive)"));
-    private final AbstractConfigCell glareRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroGlare, "لمعة زجاجية متحركة تعبر كبسولة العنوان وفقاعات الرسائل", "تأثيرات البريق ✦ Glare"));
+    // MeeroX v254 (his sealed order): glass chat-header capsule pack, replaces
+    // our old broken centering. Brand names scrubbed at his v255 order.
+    private final AbstractConfigCell cherryTitleRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroCherryTitle, "كبسولة زجاجية بالوسط، تشتغل بدون إعادة تشغيل", "توسيط عنوان الدردشة ✦"));
+    private final AbstractConfigCell cherryAdaptiveRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroCherryAdaptive, "الكبسولة تتسع وتضيق بعرض الاسم والحالة بدل العرض الثابت", "عرض الكبسولة متكيّف ✦"));
+    private final AbstractConfigCell glareRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroGlare, "لمعة زجاجية متحركة تعبر كبسولة العنوان وفقاعات الرسائل", "تأثيرات البريق ✦"));
     private final AbstractConfigCell unreadBackBadgeRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.unreadBadgeOnBackButton, "عداد أحمر يعد محادثاتك غير المقروءة الثانية وأنت داخل دردشة", "عداد غير المقروء على زر الرجوع"));
+    // MeeroX v255 (his sealed order): message-menu pack. The iOS blur panel,
+    // the bubble stack and the ~180ms animations already exist above
+    // (menuBlurRow / iosMsgMenuRow / swiftMenusRow); these complete the pack.
+    private final AbstractConfigCell msgUnifiedRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroMsgUnified, "الرسالة ومحتوى القائمة يتمررون سوية بورقة وحدة، مثل الآيفون", "التمرير الموحّد للقائمة ✦"));
+    private final AbstractConfigCell msgAutoscrollRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroMsgAutoscroll, "تنزل القائمة للنهاية تلقائياً لما تنفتح", "التمرير التلقائي للأسفل ✦"));
+    private final AbstractConfigCell msgComfyRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroMsgComfy, "القائمة لا تتجاوز نصف الشاشة — التفاعل أسهل بيد وحدة", "ارتفاع مريح للقائمة ✦"));
+    private final AbstractConfigCell msgNativeBlurRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroMsgNativeBlur, "بلر أندرويد الحقيقي خلف قائمة الرسالة (أندرويد 12 وأحدث)", "ضبابية النظام للقائمة ✦"));
+    private final AbstractConfigCell msgCompactRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroMsgCompact, "رد ونسخ وتوجيه وتعديل وحذف كدوائر سريعة بأسفل القائمة", "أزرار مدمجة بأسفل القائمة ✦"));
+    private final AbstractConfigCell msgOrderRow = cellGroup.appendCell(new ConfigCellText("ترتيب عناصر القائمة ↕", () -> presentFragment(new MeeroMsgMenuOrderActivity())));
 
     private boolean meeroIsDevAccount() {
         try {

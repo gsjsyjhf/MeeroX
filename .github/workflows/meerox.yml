@@ -6,6 +6,14 @@ on:
       note:
         description: 'Optional note for this build'
         required: false
+      pkg:
+        description: 'Optional package override (beta side-load, e.g. nu.gpu.nagram.beta)'
+        required: false
+        default: ''
+      label:
+        description: 'Optional app label override (beta builds)'
+        required: false
+        default: ''
 
 concurrency:
   group: meerox-${{ github.ref }}
@@ -20,6 +28,8 @@ jobs:
       # NagramX reads this and restricts the ABI split to a single target.
       # Building one ABI instead of four is the single biggest time saver.
       NATIVE_TARGET: "arm64-v8a"
+      MEERO_PACKAGE: ${{ github.event.inputs.pkg }}
+      MEERO_APP_LABEL: ${{ github.event.inputs.label }}
       CCACHE_COMPILERCHECK: "%compiler% -dumpmachine; %compiler% -dumpversion"
       CCACHE_HARDLINK: "true"
       CCACHE_NOHASHDIR: "true"

@@ -1038,7 +1038,7 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
                 timeItem.setAlpha(factor);
                 timeItem.setScaleX(factor * 0.85f);
                 timeItem.setScaleY(factor * 0.85f);
-                timeItem.setVisibility(factor > 0 ? VISIBLE : GONE);
+                timeItem.setVisibility(GONE); // MeeroX v255 (his order): the white timer dot on the chat-header avatar is retired permanently; the self-destruct timer stays reachable from the chat \u22ee menu.
             }
         }
     }

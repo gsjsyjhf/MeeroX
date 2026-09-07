@@ -33606,11 +33606,22 @@ public class ChatActivity extends BaseFragment implements
                         popupLayout.addView(new ActionBarPopupWindow.GapView(contentView.getContext(), themeDelegate), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 8));
                     }
                 }
+                // MeeroX v255: apply his custom message-menu order first
+                tw.nekomimi.nekogram.MeeroMsgMenu.applyOrder(items, options, icons);
+                final java.util.ArrayList<Integer> meeroCompactIds = new java.util.ArrayList<>();
+                final java.util.ArrayList<Integer> meeroCompactIcons = new java.util.ArrayList<>();
                 scrimPopupWindowItems = new ActionBarMenuSubItem[items.size()];
                 final boolean hasGroupedIcons = GroupedIconsView.useGroupedIcons();
                 for (int a = 0, N = items.size(); a < N; a++) {
                     final Integer option = options.get(a);
                     if (option == OPTION_DELETE && showWelcomeMessageRevertOption(selectedObject)) {
+                        continue;
+                    }
+                    // MeeroX v255: primaries leave the list for the compact circle row
+                    if (tw.nekomimi.nekogram.MeeroMsgMenu.compactOn() && tw.nekomimi.nekogram.MeeroMsgMenu.isCompactPrimary(option)) {
+                        meeroCompactIds.add(option);
+                        meeroCompactIcons.add(icons.get(a));
+                        scrimPopupWindowItems[a] = new ActionBarMenuSubItem(getParentActivity(), false, false, themeDelegate);
                         continue;
                     }
 
@@ -33899,6 +33910,15 @@ public class ChatActivity extends BaseFragment implements
                     popupLayout.addView(layout);
                 }
 
+                // MeeroX v255: compact quick-action circles at the menu bottom
+                if (tw.nekomimi.nekogram.MeeroMsgMenu.compactOn() && !meeroCompactIds.isEmpty()) {
+                    popupLayout.addView(tw.nekomimi.nekogram.MeeroMsgMenu.buildCompactRow(getParentActivity(), meeroCompactIds, meeroCompactIcons, meeroBtn -> {
+                        final Object tag = meeroBtn.getTag();
+                        if (tag instanceof Integer && selectedObject != null) {
+                            processSelectedOption((Integer) tag);
+                        }
+                    }));
+                }
                 if (GroupedIconsView.useGroupedIcons()) {
                     popupLayout.addView(new ActionBarPopupWindow.GapView(contentView.getContext(), themeDelegate), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 8));
 
@@ -34072,7 +34092,31 @@ public class ChatActivity extends BaseFragment implements
                 }
 
                 boolean showNoForwards = (isPeerNoForwards() || message.messageOwner.noforwards && currentUser != null && currentUser.bot) && message.messageOwner.action == null && message.isSent() && !message.isEditing() && chatMode != MODE_SCHEDULED && chatMode != MODE_SAVED && getDialogId() != UserObject.VERIFY;
+                if (tw.nekomimi.nekogram.MeeroMsgMenu.wrapNeeded()) {
+                    // MeeroX v255: iOS sheet - bubble copy + menu scroll as one sheet,
+                    // optionally capped at half the screen and auto-scrolled down.
+                    final android.widget.LinearLayout meeroUCol = new android.widget.LinearLayout(contentView.getContext());
+                    meeroUCol.setOrientation(android.widget.LinearLayout.VERTICAL);
+                    meeroUCol.setClipChildren(false);
+                    if (meeroSnapshotShown && meeroSnapshotView != null && tw.nekomimi.nekogram.MeeroMsgMenu.unifiedOn()) {
+                        ((android.view.ViewGroup) meeroSnapshotView.getParent()).removeView(meeroSnapshotView);
+                        final boolean meeroOut = message != null && message.isOutOwner();
+                        meeroUCol.addView(meeroSnapshotView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, meeroOut ? Gravity.RIGHT : Gravity.LEFT, 0, 0, 0, 10));
+                    }
+                    meeroUCol.addView(popupLayout, LayoutHelper.createLinearRelatively(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT, isReactionsAvailable ? 16 : 0, 0, isReactionsAvailable ? 36 : 0, 0));
+                    final tw.nekomimi.nekogram.MeeroMsgMenu.CappedScrollView meeroScroll = new tw.nekomimi.nekogram.MeeroMsgMenu.CappedScrollView(contentView.getContext());
+                    if (tw.nekomimi.nekogram.MeeroMsgMenu.comfyOn()) {
+                        meeroScroll.setMaxHeightPx(contentView.getHeight() > 0 ? contentView.getHeight() / 2 : AndroidUtilities.dp(300));
+                    }
+                    meeroScroll.setClipChildren(false);
+                    meeroScroll.addView(meeroUCol, new android.widget.ScrollView.LayoutParams(android.view.ViewGroup.LayoutParams.WRAP_CONTENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT));
+                    scrimPopupContainerLayout.addView(meeroScroll, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
+                    if (tw.nekomimi.nekogram.MeeroMsgMenu.autoscrollOn()) {
+                        meeroScroll.postDelayed(() -> { try { meeroScroll.smoothScrollTo(0, meeroUCol.getBottom()); } catch (Throwable ignore) {} }, 320);
+                    }
+                } else {
                 scrimPopupContainerLayout.addView(popupLayout, LayoutHelper.createLinearRelatively(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT, isReactionsAvailable ? 16 : 0, 0, isReactionsAvailable ? 36 : 0, 0));
+                }
                 scrimPopupContainerLayout.setPopupWindowLayout(popupLayout);
                 if (showNoForwards) {
                     popupLayout.measure(View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
@@ -34235,6 +34279,10 @@ public class ChatActivity extends BaseFragment implements
                 scrimPopupWindow.setAnimationStyle(0);
             }
             scrimPopupWindow.setFocusable(true);
+            // MeeroX v255: real system blur behind the menu (Android 12+)
+            if (tw.nekomimi.nekogram.MeeroMsgMenu.nativeBlurOn()) {
+                tw.nekomimi.nekogram.MeeroMsgMenu.applyNativeBlur(scrimPopupWindow);
+            }
             // MeeroX: tell the bubble copy how much room it may take before the
             // container is measured, so a long message becomes scrollable
             // instead of pushing the menu off the bottom of the screen.

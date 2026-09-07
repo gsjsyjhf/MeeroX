@@ -68,7 +68,10 @@ if (nativeTarget == 'SKIP') {
 }
 
 android {
-    defaultConfig.applicationId = APP_PACKAGE
+    def meeroPkg = System.getenv('MEERO_PACKAGE')
+    defaultConfig.applicationId = (meeroPkg != null && !meeroPkg.isEmpty()) ? meeroPkg : APP_PACKAGE
+    def meeroLabel = System.getenv('MEERO_APP_LABEL')
+    defaultConfig.resValue 'string', 'NagramX', ((meeroLabel != null && !meeroLabel.isEmpty()) ? meeroLabel : 'MeeroX') // MeeroX v255: beta side-load label
 
     androidResources {
         localeFilters += [

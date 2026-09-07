@@ -76,7 +76,7 @@ public class NekoConfig {
     public static final ArrayList<DatacenterInfo> datacenterInfos = new ArrayList<>(5);
 
     // Configs
-    public static ConfigItem unreadBadgeOnBackButton = addConfig("unreadBadgeOnBackButton", configTypeBool, true); // MeeroX v254: ON by default (his Cherrygram pack pick: unread counter on back button, normal style)
+    public static ConfigItem unreadBadgeOnBackButton = addConfig("unreadBadgeOnBackButton", configTypeBool, true); // MeeroX v254: ON by default (unread counter on the back button, normal style)
     public static ConfigItem useCustomEmoji = addConfig("useCustomEmoji", configTypeBool, false);
     public static ConfigItem repeatConfirm = addConfig("repeatConfirm", configTypeBool, true);
     public static ConfigItem disableInstantCamera = addConfig("DisableInstantCamera", configTypeBool, true);
@@ -170,10 +170,19 @@ public class NekoConfig {
     // @i55544's profile. 0 = tiled-name pattern (DEFAULT), 1 = blurred
     // profile photo, 2 = off. The settings row shows only on his device.
     public static ConfigItem meeroDevProfileBg = addConfig("meeroDevProfileBg", configTypeInt, 0);
-    // MeeroX v254 — Cherrygram chat-header pack (his sealed order, ported from github.com/arsLan4k1390/Cherrygram)
+    // MeeroX v254 — glass chat-header capsule pack (his sealed order)
     public static ConfigItem meeroCherryTitle = addConfig("meeroCherryTitle", configTypeBool, true);
     public static ConfigItem meeroCherryAdaptive = addConfig("meeroCherryAdaptive", configTypeBool, true);
     public static ConfigItem meeroGlare = addConfig("meeroGlare", configTypeBool, true);
+    // MeeroX v255 — message-menu pack (his sealed order). Note: the iOS blur
+    // panel, the bubble stack and the ~180ms animations ALREADY exist as
+    // meeroMenuBlur / meeroIosMsgMenu / meeroSwiftMenus; these complete it.
+    public static ConfigItem meeroMsgUnified = addConfig("meeroMsgUnified", configTypeBool, true);
+    public static ConfigItem meeroMsgAutoscroll = addConfig("meeroMsgAutoscroll", configTypeBool, true);
+    public static ConfigItem meeroMsgComfy = addConfig("meeroMsgComfy", configTypeBool, true);
+    public static ConfigItem meeroMsgNativeBlur = addConfig("meeroMsgNativeBlur", configTypeBool, true);
+    public static ConfigItem meeroMsgCompact = addConfig("meeroMsgCompact", configTypeBool, true);
+    public static ConfigItem meeroMsgOrder = addConfig("meeroMsgOrder", configTypeString, "");
     public static ConfigItem meeroIosWaveform = addConfig("meeroIosWaveform", configTypeBool, true);
     public static ConfigItem meeroIosSelection = addConfig("meeroIosSelection", configTypeBool, true);
     public static ConfigItem meeroIosRow = addConfig("meeroIosRow", configTypeBool, true);
