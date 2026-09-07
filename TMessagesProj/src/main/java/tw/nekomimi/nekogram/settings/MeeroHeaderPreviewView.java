@@ -39,25 +39,26 @@ import org.telegram.ui.Components.blur3.source.BlurredBackgroundSourceColor;
 import tw.nekomimi.nekogram.NekoConfig;
 
 /**
- * MeeroX v258 (his screenshots, round 2): the v257 preview split in two -
- * a frozen title ghost on one side and an empty glass pill on the other -
- * because it missed the ONE line ChatActivity uses to wire centered mode:
- * ActionBarMenu.setCenteredTitle(). Without it the ActionBar kept laying
- * the bar out as stock with a centered container plugged in, so the pill
- * and its text never met, and the connected big-title copy stayed stuck in
- * a half-drawn crossfade (the "butterfly" text he captured).
+ * MeeroX v259 (his screenshots, round 3): honest record - v258 fixed the
+ * split-state but kept two geometry leftovers he spotted on device:
  *
- * v258 = reference behavior achieved the same way their screen achieves it:
- * their settings REBUILDS the row on every toggle, so the preview is always
- * born pristine in its final state. We mirror that with meeroBuild(): any
- * config flip tears the header widgets down and re-creates them in one go,
- * exactly like constructing a fresh row — no half-state can survive.
+ *   1. "صورة الحساب تصير فوق الـ3 نقاط مو جنبه" - our container had a 54dp
+ *      end margin in EVERY mode, so the avatar stopped beside the ⋮ menu.
+ *      The reference uses NO end margin while centered: the container spans
+ *      to the far corner and the avatar is drawn ON the ⋮ spot (it stays
+ *      under the container in z-order, so it simply vanishes behind it).
+ *   2. "كبسوله الاسم تتوسط" - the title was hugging the container start
+ *      (+6dp), while the reference centers it in the bar middle. Wired
+ *      through the new preview-only ChatAvatarContainer geometry path
+ *      (setMeeroPreviewTitleCenter), so real chats are pixel-untouched.
  *
- * Reference-exact visuals kept from v257: real name/photo (showSelf=true),
+ *   3. Their bar geometry adopted 1:1 as well: 70dp, edge to edge.
+ *
+ * Kept from v257/v258: pristine meeroBuild() rebirth on every config flip,
+ * menu.setCenteredTitle wiring, real name/photo (showSelf=true),
  * guaranteed wallpaper, white-chip back capsule (preview-only; the real
  * chat keeps his red chip), adaptive glass pill, live glare, plain-stock
- * mode. Plus: the real back button's drawing is hidden while the capsule
- * is up, so no double chevron can ghost through.
+ * mode, no double-chevron ghost.
  */
 public class MeeroHeaderPreviewView extends FrameLayout {
 
@@ -109,7 +110,8 @@ public class MeeroHeaderPreviewView extends FrameLayout {
         BlurredBackgroundDrawableViewFactory factory = new BlurredBackgroundDrawableViewFactory(sourceColor);
         actionBar.setupGlass(factory, BlurredBackgroundProviderImpl.topPanelChatActivity(resourcesProvider));
 
-        addView(actionBar, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 56, Gravity.CENTER_VERTICAL, 6, 4, 6, 4));
+        // v259: reference-exact bar frame - 70dp tall, edge to edge.
+        addView(actionBar, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 70, Gravity.CENTER_HORIZONTAL | Gravity.CENTER_VERTICAL, 0, 0, 0, 0));
 
         avatarContainer = new ChatAvatarContainer(getContext(), fragment, false, resourcesProvider) {
             @Override
@@ -139,7 +141,13 @@ public class MeeroHeaderPreviewView extends FrameLayout {
         avatarContainer.setTitle(meeroPreviewTitle(user));
         avatarContainer.setSubtitle(getString(R.string.Online));
 
-        actionBar.addView(avatarContainer, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.MATCH_PARENT, Gravity.START | Gravity.TOP, 54, 0, 54, 0));
+        // v259 (his words «صورة الحساب تصير فوق الـ3 نقاط مو جنبه»):
+        // reference-exact margins - NO end margin while centered - so the
+        // avatar is pinned at the far corner, covering the ⋮ spot exactly
+        // like the reference, instead of floating beside it. Plus the
+        // preview-only centering geometry inside the container.
+        avatarContainer.setMeeroPreviewTitleCenter(true);
+        actionBar.addView(avatarContainer, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.MATCH_PARENT, Gravity.START | Gravity.TOP, 54, 0, lastCentered ? 0 : 54, 0));
         actionBar.setChatAvatarContainer2(avatarContainer);
 
         backCapsule = new MeeroBackCapsule(getContext(),

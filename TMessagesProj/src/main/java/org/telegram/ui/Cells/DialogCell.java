@@ -409,6 +409,14 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
 
     private CommunityArrowDrawable communityArrowDrawable;
 
+    // MeeroX v259 (his standing order «احذف النقطة البيضاء نهائياً»):
+    // THE dot he kept reporting was never the header timer dot (v255..v257
+    // hunts) nor the header community view (v258 weld) - it was THIS one:
+    // the linked-community arrow disc drawn on the dialog-row avatar in the
+    // chats list (white circle, bottom corner, dark arrow). Retired here;
+    // flip this one constant to bring it back.
+    private static final boolean MEERO_SHOW_COMMUNITY_BADGE = false;
+
     public static class FixedWidthSpan extends ReplacementSpan {
 
         private int width;
@@ -4879,7 +4887,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                 storyParams.forceState = s;
             }
 
-            if (!insideCommunityList && (chat != null && chat.linked_community_id != 0 || user != null && user.linked_community_id != 0) && !drawCommunityAvatar && isDialogCell && !isDialogFolder()) {
+            if (MEERO_SHOW_COMMUNITY_BADGE && !insideCommunityList && (chat != null && chat.linked_community_id != 0 || user != null && user.linked_community_id != 0) && !drawCommunityAvatar && isDialogCell && !isDialogFolder()) {
                 final float ccx = storyParams.originalAvatarRect.centerX() + dp(20.33f);
                 final float ccy = storyParams.originalAvatarRect.centerY() + dp(19);
                 if (communityArrowDrawable == null) {
