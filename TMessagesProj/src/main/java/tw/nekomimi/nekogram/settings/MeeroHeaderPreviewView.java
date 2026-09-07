@@ -39,34 +39,33 @@ import org.telegram.ui.Components.blur3.source.BlurredBackgroundSourceColor;
 import tw.nekomimi.nekogram.NekoConfig;
 
 /**
- * MeeroX v257 (his sealed order): LIVE chat-top-strip preview, rebuilt
- * Cherrygram-EXACT after his screenshots proved v256 drifted from the
- * reference. What makes it identical to their settings preview:
+ * MeeroX v258 (his screenshots, round 2): the v257 preview split in two -
+ * a frozen title ghost on one side and an empty glass pill on the other -
+ * because it missed the ONE line ChatActivity uses to wire centered mode:
+ * ActionBarMenu.setCenteredTitle(). Without it the ActionBar kept laying
+ * the bar out as stock with a centered container plugged in, so the pill
+ * and its text never met, and the connected big-title copy stayed stuck in
+ * a half-drawn crossfade (the "butterfly" text he captured).
  *
- *  1) REAL name + REAL photo - via setUserAvatar(user, showSelf = TRUE) so
- *     Telegram's own saved-messages branch is skipped the CLEAN way (v256's
- *     missing self-handling rendered the Saved-Messages icon + a garbled
- *     title; the reference flips user.self instead - our base's two-arg
- *     overload achieves it without mutating the shared currentUser object).
- *  2) REAL chat wallpaper guaranteed - non-blocking first, then one
- *     blocking load on a background thread that repaints when ready.
- *  3) THEIR back capsule - glass pill holding the chevron + a WHITE count
- *     chip inside (drawn by MeeroBackCapsule below; the app's REAL chat
- *     keeps his own red chip - he picked "reference look in the preview
- *     only"). It covers the stock back button while the capsule is up.
- *  4) Centered adaptive glass pill over the wallpaper, live-glare, the
- *     unread chip demo count 10, and "رجوع للأصلي" shows plain stock.
- *  5) needTime = false - the retired white timer dot can not exist inside
- *     this preview, by construction.
+ * v258 = reference behavior achieved the same way their screen achieves it:
+ * their settings REBUILDS the row on every toggle, so the preview is always
+ * born pristine in its final state. We mirror that with meeroBuild(): any
+ * config flip tears the header widgets down and re-creates them in one go,
+ * exactly like constructing a fresh row — no half-state can survive.
  *
- * A light self-refresh loop repaints on config flips without rebuilding
- * the row.
+ * Reference-exact visuals kept from v257: real name/photo (showSelf=true),
+ * guaranteed wallpaper, white-chip back capsule (preview-only; the real
+ * chat keeps his red chip), adaptive glass pill, live glare, plain-stock
+ * mode. Plus: the real back button's drawing is hidden while the capsule
+ * is up, so no double chevron can ghost through.
  */
 public class MeeroHeaderPreviewView extends FrameLayout {
 
-    private final ActionBar actionBar;
-    private final ChatAvatarContainer avatarContainer;
-    private final MeeroBackCapsule backCapsule;
+    private final BaseFragment fragment;
+    private final Theme.ResourcesProvider resourcesProvider;
+    private ActionBar actionBar;
+    private ChatAvatarContainer avatarContainer;
+    private MeeroBackCapsule backCapsule;
     private Drawable backgroundDrawable;
     private boolean wallpaperKickDone;
 
@@ -75,8 +74,20 @@ public class MeeroHeaderPreviewView extends FrameLayout {
 
     public MeeroHeaderPreviewView(Context context, BaseFragment fragment, Theme.ResourcesProvider resourcesProvider) {
         super(context);
+        this.fragment = fragment;
+        this.resourcesProvider = resourcesProvider;
+        meeroBuild();
+    }
 
-        actionBar = new ActionBar(context);
+    /** (Re)builds the whole header pristine, at the configs' final state —
+     *  the same trick the reference's settings list achieves by rebuilding
+     *  the entire row on every toggle. */
+    private void meeroBuild() {
+        removeAllViews();
+        lastCentered = meeroEffectiveCentered();
+        lastAdaptive = meeroEffectiveAdaptive();
+
+        actionBar = new ActionBar(getContext());
         actionBar.setOccupyStatusBar(false);
         actionBar.setBackgroundColor(Theme.getColor(Theme.key_actionBarDefault, resourcesProvider));
         actionBar.setItemsColor(Theme.getColor(Theme.key_actionBarDefaultIcon, resourcesProvider), false);
@@ -88,6 +99,10 @@ public class MeeroHeaderPreviewView extends FrameLayout {
         ActionBarMenu menu = actionBar.createMenu();
         ActionBarMenuItem menuItem = menu.addItem(0, R.drawable.ic_ab_other);
         menuItem.setContentDescription(getString(R.string.AccDescrMoreOptions));
+        // MeeroX v258 fix: THE missing wire. ChatActivity:4692 does
+        // menu.setCenteredTitle(isTitleCentered()) - without it the bar laid
+        // out half-stock/half-pill (ghost title + empty pill).
+        menu.setCenteredTitle(lastCentered);
 
         BlurredBackgroundSourceColor sourceColor = new BlurredBackgroundSourceColor();
         sourceColor.setColor(fragment.getThemedColor(Theme.key_windowBackgroundWhite));
@@ -96,7 +111,7 @@ public class MeeroHeaderPreviewView extends FrameLayout {
 
         addView(actionBar, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 56, Gravity.CENTER_VERTICAL, 6, 4, 6, 4));
 
-        avatarContainer = new ChatAvatarContainer(context, fragment, false, resourcesProvider) {
+        avatarContainer = new ChatAvatarContainer(getContext(), fragment, false, resourcesProvider) {
             @Override
             public boolean isCentered() {
                 return meeroEffectiveCentered();
@@ -112,9 +127,7 @@ public class MeeroHeaderPreviewView extends FrameLayout {
 
         final TLRPC.User user = UserConfig.getInstance(UserConfig.selectedAccount).getCurrentUser();
         if (user != null) {
-            // MeeroX v257 fix: showSelf = true keeps the REAL photo/name path
-            // (v256 hit the Saved-Messages branch -> bookmark icon + garbled
-            // title; reference parity without touching user.self).
+            // showSelf=true: REAL photo/name path, no saved-messages render
             avatarContainer.setUserAvatar(user, true);
         }
         avatarContainer.setGlassMode();
@@ -129,16 +142,15 @@ public class MeeroHeaderPreviewView extends FrameLayout {
         actionBar.addView(avatarContainer, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.MATCH_PARENT, Gravity.START | Gravity.TOP, 54, 0, 54, 0));
         actionBar.setChatAvatarContainer2(avatarContainer);
 
-        backCapsule = new MeeroBackCapsule(context, Theme.getColor(Theme.key_actionBarDefault, resourcesProvider),
+        backCapsule = new MeeroBackCapsule(getContext(),
+                Theme.getColor(Theme.key_actionBarDefault, resourcesProvider),
                 Theme.getColor(Theme.key_actionBarDefaultIcon, resourcesProvider));
-        FrameLayout.LayoutParams clp = LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT,
-                Gravity.START | Gravity.CENTER_VERTICAL, 8, 0, 0, 0);
-        addView(backCapsule, clp);
+        addView(backCapsule, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT,
+                Gravity.START | Gravity.CENTER_VERTICAL, 8, 0, 0, 0));
 
-        lastCentered = meeroEffectiveCentered();
-        lastAdaptive = meeroEffectiveAdaptive();
         actionBar.setForceAdaptiveWidth(lastAdaptive);
         meeroRefreshCapsule();
+        meeroRefreshBackVisuals();
     }
 
     private static boolean meeroEffectiveCentered() {
@@ -174,7 +186,15 @@ public class MeeroHeaderPreviewView extends FrameLayout {
 
     /** Reference parity: capsule visible only in pill mode; chip per switch. */
     private void meeroRefreshCapsule() {
-        backCapsule.setState(meeroEffectiveCentered(), meeroBadgeOn());
+        backCapsule.setState(lastCentered, meeroBadgeOn());
+    }
+
+    /** While the capsule is up, the stock back button must not draw under it
+     *  (v257's double-chevron ghost). INVISIBLE keeps its layout metrics. */
+    private void meeroRefreshBackVisuals() {
+        if (actionBar.backButtonImageView != null) {
+            actionBar.backButtonImageView.setVisibility(lastCentered ? INVISIBLE : VISIBLE);
+        }
     }
 
     @Override
@@ -217,7 +237,7 @@ public class MeeroHeaderPreviewView extends FrameLayout {
         super.onDraw(canvas);
     }
 
-    // ---- self-refresh loop: configs -> live repaint ----
+    // ---- self-refresh loop: configs -> pristine rebuild on flip ----
 
     private final Runnable meeroRefresher = new Runnable() {
         @Override
@@ -225,19 +245,15 @@ public class MeeroHeaderPreviewView extends FrameLayout {
             boolean centered = meeroEffectiveCentered();
             boolean adaptive = meeroEffectiveAdaptive();
             if (centered != lastCentered || adaptive != lastAdaptive) {
-                lastCentered = centered;
-                lastAdaptive = adaptive;
-                actionBar.setForceAdaptiveWidth(adaptive);
-                actionBar.requestLayout();
-                avatarContainer.requestLayout();
-                invalidate();
-            }
-            meeroRefreshCapsule();
-            try {
-                if (centered && NekoConfig.meeroGlare.Bool()) {
-                    avatarContainer.invalidate();
+                meeroBuild(); // pristine rebirth, reference-rebuild style
+            } else {
+                meeroRefreshCapsule();
+                try {
+                    if (centered && NekoConfig.meeroGlare.Bool()) {
+                        avatarContainer.invalidate();
+                    }
+                } catch (Throwable ignore) {
                 }
-            } catch (Throwable ignore) {
             }
             if (isAttachedToWindow()) {
                 postDelayed(this, 260);
@@ -259,9 +275,9 @@ public class MeeroHeaderPreviewView extends FrameLayout {
     }
 
     /**
-     * MeeroX v257: the reference's back capsule - a glass pill around the
-     * chevron carrying the WHITE count chip inside. Pure cosmetics for this
-     * preview (our real chat header keeps the owner's red chip).
+     * The reference's back capsule - a glass pill around the chevron carrying
+     * the WHITE count chip inside. Pure cosmetics for this preview (our real
+     * chat header keeps the owner's red chip).
      */
     private static final class MeeroBackCapsule extends View {
 
@@ -273,17 +289,15 @@ public class MeeroHeaderPreviewView extends FrameLayout {
         private final RectF rect = new RectF();
         private final Path chevron = new Path();
         private final Rect textBounds = new Rect();
-        private final int baseColor;
 
         private boolean show;
         private boolean chip;
 
         MeeroBackCapsule(Context context, int actionBarColor, int itemsColor) {
             super(context);
-            baseColor = actionBarColor;
             bgPaint.setStyle(Paint.Style.FILL);
             bgPaint.setColor(ColorUtils.blendARGB(actionBarColor, Color.WHITE, 0.10f));
-            bgPaint.setAlpha(224);
+            bgPaint.setAlpha(242);
             strokePaint.setStyle(Paint.Style.STROKE);
             strokePaint.setStrokeWidth(Math.max(1f, dp(0.66f)));
             strokePaint.setColor(ColorUtils.blendARGB(actionBarColor, Color.WHITE, 0.28f));

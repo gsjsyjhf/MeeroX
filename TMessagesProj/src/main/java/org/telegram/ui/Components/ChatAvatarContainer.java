@@ -1026,7 +1026,12 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
 
     public void setCommunityItemVisible(boolean visible) {
         if (communityItem != null) {
-            communityItem.setVisibility(visible && !avatarImageIsHidden && !isCentered() ? VISIBLE : GONE);
+            // MeeroX v258 (his standing order «احذف النقطة البيضاء نهائياً»):
+            // THE dot was never the timer at all - it is Telegram's new
+            // linked-community badge (white disc bottom-corner of the avatar),
+            // which stock mode shows while centered mode hides. Retired on the
+            // chat header in EVERY mode; revert this one line to bring it back.
+            communityItem.setVisibility(GONE);
         }
     }
 
