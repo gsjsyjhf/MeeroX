@@ -174,14 +174,21 @@ public class NekoConfig {
     public static ConfigItem meeroCherryTitle = addConfig("meeroCherryTitle", configTypeBool, true);
     public static ConfigItem meeroCherryAdaptive = addConfig("meeroCherryAdaptive", configTypeBool, true);
     public static ConfigItem meeroGlare = addConfig("meeroGlare", configTypeBool, true);
+    // MeeroX v256 (his sealed order): "رجوع للأصلي" master switch of the new
+    // collapsible chat-top-strip settings section. Default OFF so the user's
+    // current capsule look survives the update untouched. It GATES reads of
+    // meeroCherryTitle-Adaptive (they stay saved, only the effect pauses).
+    public static ConfigItem meeroHeaderStock = addConfig("meeroHeaderStock", configTypeBool, false);
     // MeeroX v255 — message-menu pack (his sealed order). Note: the iOS blur
     // panel, the bubble stack and the ~180ms animations ALREADY exist as
     // meeroMenuBlur / meeroIosMsgMenu / meeroSwiftMenus; these complete it.
-    public static ConfigItem meeroMsgUnified = addConfig("meeroMsgUnified", configTypeBool, true);
-    public static ConfigItem meeroMsgAutoscroll = addConfig("meeroMsgAutoscroll", configTypeBool, true);
-    public static ConfigItem meeroMsgComfy = addConfig("meeroMsgComfy", configTypeBool, true);
-    public static ConfigItem meeroMsgNativeBlur = addConfig("meeroMsgNativeBlur", configTypeBool, true);
-    public static ConfigItem meeroMsgCompact = addConfig("meeroMsgCompact", configTypeBool, true);
+    // MeeroX v256: owner REJECTED the pack after trying the beta ("ماريد هاي
+    // ميزات") - defaults flipped OFF so the pack sleeps; rows hidden too.
+    public static ConfigItem meeroMsgUnified = addConfig("meeroMsgUnified", configTypeBool, false);
+    public static ConfigItem meeroMsgAutoscroll = addConfig("meeroMsgAutoscroll", configTypeBool, false);
+    public static ConfigItem meeroMsgComfy = addConfig("meeroMsgComfy", configTypeBool, false);
+    public static ConfigItem meeroMsgNativeBlur = addConfig("meeroMsgNativeBlur", configTypeBool, false);
+    public static ConfigItem meeroMsgCompact = addConfig("meeroMsgCompact", configTypeBool, false);
     public static ConfigItem meeroMsgOrder = addConfig("meeroMsgOrder", configTypeString, "");
     public static ConfigItem meeroIosWaveform = addConfig("meeroIosWaveform", configTypeBool, true);
     public static ConfigItem meeroIosSelection = addConfig("meeroIosSelection", configTypeBool, true);

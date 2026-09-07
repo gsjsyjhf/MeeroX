@@ -533,15 +533,14 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             // so adding the bar's margins on top squeezed the icon. The pill
             // also carries the bar's own padding, which has to be included
             // here or the glass clips the glyph.
-            final int pillW = MainTabsHelper.MAIN_TABS_HEIGHT; // MeeroX v255 (his order): search becomes a real 56dp circle like the reference size
+            final int pillW = barH; // MeeroX v256 (his sealed order): the REAL reference search size is a 68x68 view (bar height incl. margins), not my wrong 56x56 guess
             // Telegram-iOS TabBarComponent lays the search pill out as
             // "width - 48.0 - 8.0", i.e. a 48pt button with an 8pt gap.
             final int gap = dp(MainTabsHelper.IOS_TAB_GAP);
             final FrameLayout.LayoutParams barLp = LayoutHelper.createFrame(
                     LayoutHelper.MATCH_PARENT, barH, Gravity.BOTTOM | Gravity.LEFT);
             final FrameLayout.LayoutParams pillLp = LayoutHelper.createFrame(
-                    pillW, MainTabsHelper.MAIN_TABS_HEIGHT, Gravity.BOTTOM | Gravity.RIGHT); // MeeroX v255: 56x56 circle
-            pillLp.bottomMargin = dp(mainTabsMargin + 4); // MeeroX v255: keep its glass bottom in line with the bar
+                    pillW, barH, Gravity.BOTTOM | Gravity.RIGHT); // MeeroX v256: 68x68 square view, the reference's true sizing
             // In a right-to-left locale the reading order starts on the right,
             // so the search pill belongs on the right and the bar shifts left -
             // the mirror of the LTR arrangement.

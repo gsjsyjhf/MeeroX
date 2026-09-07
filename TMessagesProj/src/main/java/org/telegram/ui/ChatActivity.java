@@ -50011,7 +50011,10 @@ public class ChatActivity extends BaseFragment implements
     /** MeeroX v254: Cherrygram centre-title master switch (default ON; gated defensively). */
     private boolean meeroCherryTitleOn() {
         try {
-            return tw.nekomimi.nekogram.NekoConfig.meeroCherryTitle.Bool();
+            // MeeroX v256: "رجوع للأصلي" pauses the capsule (and with it the
+            // adaptive width, which is already AND-gated on isCentered()).
+            return tw.nekomimi.nekogram.NekoConfig.meeroCherryTitle.Bool()
+                    && !tw.nekomimi.nekogram.NekoConfig.meeroHeaderStock.Bool();
         } catch (Throwable ignore) {
             return false;
         }

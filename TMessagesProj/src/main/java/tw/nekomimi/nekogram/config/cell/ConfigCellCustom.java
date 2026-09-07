@@ -9,6 +9,9 @@ public class ConfigCellCustom extends AbstractConfigCell implements WithKey {
     public static final int CUSTOM_ITEM_Temperature = 995;
     // MeeroX v219: inline deleted-trash color strip (NekoExperimental screen)
     public static final int CUSTOM_ITEM_MeeroTrashColors = 994;
+    // MeeroX v256: live chat-top-strip preview (MeeroSettings screen,
+    // collapsible "شريط الدردشة العلوي" section)
+    public static final int CUSTOM_ITEM_MeeroHeaderPreview = 993;
 
     public final int type;
     public boolean enabled;
