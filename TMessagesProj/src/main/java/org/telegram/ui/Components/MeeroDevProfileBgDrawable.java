@@ -16,15 +16,17 @@ import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.Utilities;
 
 /**
- * MeeroX v250 — developer-profile wallpaper (his sealed order, dev = @i55544).
+ * MeeroX v250-v252 — developer-profile header wallpaper (his sealed orders, dev = @i55544).
  *
- * Set as the background of ProfileActivity's root only when the opened
+ * Painted by ProfileActivity.TopView.onDraw INSIDE the stock header block
+ * only (v252: he wants the pattern strictly top-only like ellipi; below the
+ * header the profile keeps the stock look). Only active when the opened
  * profile belongs to the developer account. Two modes (NekoConfig
  * "meeroDevProfileBg"): 0 = tiled name pattern over the approved grey-blue
  * gradient (the name is read live from the profile, so renaming himself
  * re-renders the pattern), 1 = his current profile photo centre-cropped and
  * blurred as a dimmed backdrop (follows photo changes too). Mode 2 = off,
- * handled by ProfileActivity not installing this drawable at all.
+ * handled by ProfileActivity not drawing this drawable at all.
  *
  * All drawing is local to the viewer's MeeroX build; official clients see
  * the untouched stock profile.

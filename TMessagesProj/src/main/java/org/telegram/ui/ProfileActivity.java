@@ -1422,9 +1422,12 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             if (y1 != 0) {
                 paint.setColor(currentColor);
                 updateBackgroundPaint();
-                final boolean meeroWall = meeroDevWallpaperOn(); // MeeroX v251: dev wallpaper must span the WHOLE profile (his bug report: pattern showed only below the opaque header)
                 final float progressToGradient = (playProfileAnimation == 0 ? 1f : avatarAnimationProgress) * hasColorAnimated.set(hasColorById);
-                if (!meeroWall) {
+                final org.telegram.ui.Components.MeeroDevProfileBgDrawable meeroWall = meeroDevWallpaperOn() ? meeroDevBg : null; // MeeroX v252: dev wallpaper confined to the header block ONLY (his order: top-only ellipi-style); drawn exactly where stock fills it so the rest of the header pipeline (avatar, blur, parallax) stays untouched
+                if (meeroWall != null) {
+                    meeroWall.setBounds(0, 0, getMeasuredWidth(), y1);
+                    meeroWall.draw(canvas);
+                } else {
                     if (progressToGradient < 1) {
                         canvas.drawRect(0, 0, getMeasuredWidth(), y1, paint);
                     }
@@ -1433,7 +1436,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         canvas.drawRect(0, 0, getMeasuredWidth(), y1, backgroundPaint);
                     }
                 }
-                if (hasEmoji && !meeroWall) {
+                if (meeroWall == null && hasEmoji) {
                     final float loadedScale = emojiLoadedT.set(isEmojiLoaded());
                     boolean shoudIgnore = openAnimationInProgress && playProfileAnimation == 2;
                     if (!shoudIgnore && loadedScale > 0 && avatarContainer != null) {
@@ -11753,8 +11756,12 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 meeroDevBg = null;
                 meeroDevBgMode = -1;
                 meeroDevBgName = null;
-                fragmentView.setBackground(null);
-                fragmentView.invalidate();
+            }
+            // MeeroX v252: draw route is the TopView header block only; purge leftovers and restore stock surfaces
+            fragmentView.setBackground(null);
+            fragmentView.invalidate();
+            if (topView != null) {
+                topView.invalidate();
             }
             return;
         }
@@ -11776,7 +11783,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             });
             meeroDevBgMode = -1;
             meeroDevBgName = null;
-            fragmentView.setBackground(meeroDevBg);
+            // MeeroX v252: NOT installed as a root/list background anymore - TopView.onDraw paints it inside the header rect only (his order: pattern top-only; everything below stays stock)
         }
         if (meeroDevBgMode != cfg) {
             meeroDevBgMode = cfg;
@@ -11786,10 +11793,14 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             meeroDevBgName = nm;
             meeroDevBg.setName(nm);
         }
-        listView.setBackgroundColor(android.graphics.Color.TRANSPARENT);
-        fragmentView.invalidate();
+        // MeeroX v252: fully restore stock surfaces below the header (v250/v251 had hijacked them)
+        fragmentView.setBackground(null);
+        listView.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundGray));
+        if (topView != null) {
+            topView.invalidate();
+        }
     }
-    // === MeeroX v250 end ===
+    // === MeeroX v252 end ===
 
     private void updateProfileData(boolean reload) {
         if (avatarContainer == null || nameTextView == null || getParentActivity() == null) {
