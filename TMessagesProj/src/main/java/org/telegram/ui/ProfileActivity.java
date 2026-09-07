@@ -1422,15 +1422,18 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             if (y1 != 0) {
                 paint.setColor(currentColor);
                 updateBackgroundPaint();
+                final boolean meeroWall = meeroDevWallpaperOn(); // MeeroX v251: dev wallpaper must span the WHOLE profile (his bug report: pattern showed only below the opaque header)
                 final float progressToGradient = (playProfileAnimation == 0 ? 1f : avatarAnimationProgress) * hasColorAnimated.set(hasColorById);
-                if (progressToGradient < 1) {
-                    canvas.drawRect(0, 0, getMeasuredWidth(), y1, paint);
+                if (!meeroWall) {
+                    if (progressToGradient < 1) {
+                        canvas.drawRect(0, 0, getMeasuredWidth(), y1, paint);
+                    }
+                    if (progressToGradient > 0) {
+                        backgroundPaint.setAlpha((int) (0xFF * progressToGradient));
+                        canvas.drawRect(0, 0, getMeasuredWidth(), y1, backgroundPaint);
+                    }
                 }
-                if (progressToGradient > 0) {
-                    backgroundPaint.setAlpha((int) (0xFF * progressToGradient));
-                    canvas.drawRect(0, 0, getMeasuredWidth(), y1, backgroundPaint);
-                }
-                if (hasEmoji) {
+                if (hasEmoji && !meeroWall) {
                     final float loadedScale = emojiLoadedT.set(isEmojiLoaded());
                     boolean shoudIgnore = openAnimationInProgress && playProfileAnimation == 2;
                     if (!shoudIgnore && loadedScale > 0 && avatarContainer != null) {
@@ -11726,6 +11729,14 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         }
     }
 
+    private boolean meeroDevWallpaperOn() {
+        try {
+            return meeroViewingDevProfile() && tw.nekomimi.nekogram.NekoConfig.meeroDevProfileBg.Int() != 2;
+        } catch (Throwable ignore) {
+            return false;
+        }
+    }
+
     private void meeroApplyDevProfileBackground() {
         if (fragmentView == null || listView == null) {
             return;
@@ -11736,7 +11747,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         } catch (Throwable e) {
             return;
         }
-        final boolean dev = meeroViewingDevProfile() && cfg != 2;
+        final boolean dev = meeroDevWallpaperOn(); // MeeroX v251: single gate (viewing dev profile + mode != off)
         if (!dev) {
             if (meeroDevBg != null) {
                 meeroDevBg = null;
