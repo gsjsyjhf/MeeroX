@@ -68,6 +68,11 @@ if (nativeTarget == 'SKIP') {
 }
 
 android {
+    // MeeroX v255.1 hotfix: resValue (beta label) needs this feature on
+    // (CI caught its absence: "custom resource values, but the feature is disabled").
+    buildFeatures {
+        resValues = true
+    }
     def meeroPkg = System.getenv('MEERO_PACKAGE')
     defaultConfig.applicationId = (meeroPkg != null && !meeroPkg.isEmpty()) ? meeroPkg : APP_PACKAGE
     def meeroLabel = System.getenv('MEERO_APP_LABEL')
