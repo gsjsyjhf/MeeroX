@@ -151,6 +151,13 @@ public class MeeroSettingsActivity extends BaseNekoXSettingsActivity {
     // visible ONLY on the dev account's own device (@i55544). Everyone else
     // just renders the default tiled-name pattern - no row, no trace.
     private final AbstractConfigCell devProfileBgRow = meeroIsDevAccount() ? cellGroup.appendCell(new ConfigCellSelectBox("MeeroDevProfileBg", NekoConfig.meeroDevProfileBg, new String[]{"نقشة اسمك بالخلفية", "صورة البروفايل خلفية", "إيقاف الخلفية"}, null)) : null;
+    // MeeroX v254 (his sealed order): Cherrygram chat-header pack, ported from
+    // github.com/arsLan4k1390/Cherrygram — replaces our old broken centering
+    // with Cherrygram's own implementation.
+    private final AbstractConfigCell cherryTitleRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroCherryTitle, "كبسولة زجاجية بالوسط على طريقة Cherrygram نفسها، تتبديل بدون restart", "توسيط عنوان الدردشة ✦ Cherrygram"));
+    private final AbstractConfigCell cherryAdaptiveRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroCherryAdaptive, "الكبسولة تتسع وتضيق بعرض الاسم والحالة بدل العرض الثابت", "عرض البابل متكيّف (Adaptive)"));
+    private final AbstractConfigCell glareRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroGlare, "لمعة زجاجية متحركة تعبر كبسولة العنوان وفقاعات الرسائل", "تأثيرات البريق ✦ Glare"));
+    private final AbstractConfigCell unreadBackBadgeRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.unreadBadgeOnBackButton, "عداد أحمر يعد محادثاتك غير المقروءة الثانية وأنت داخل دردشة", "عداد غير المقروء على زر الرجوع"));
 
     private boolean meeroIsDevAccount() {
         try {

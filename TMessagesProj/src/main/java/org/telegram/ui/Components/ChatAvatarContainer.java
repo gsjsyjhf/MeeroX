@@ -213,6 +213,9 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
                 }
             };
 
+            // MeeroX v254 (cherry-parity): press-bounce spring for the centered avatar
+            private final ButtonBounce avatarBounce = new ButtonBounce(this);
+
             @Override
             public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo info) {
                 super.onInitializeAccessibilityNodeInfo(info);
@@ -226,6 +229,13 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
 
             @Override
             protected void onDraw(Canvas canvas) {
+                // MeeroX v254 (cherry-parity): centered avatar scales on press
+                final boolean scaleOnPress = isCentered();
+                if (scaleOnPress) {
+                    canvas.save();
+                    final float s = avatarBounce.getScale(.05f);
+                    canvas.scale(s, s, getWidth() / 2f, getHeight() / 2f);
+                }
                 if (allowDrawStories && animatedEmojiDrawable == null && !isCentered()) {
                     params.originalAvatarRect.set(0, 0, getMeasuredWidth(), getMeasuredHeight());
                     params.drawSegments = true;
@@ -246,10 +256,22 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
                 } else {
                     super.onDraw(canvas);
                 }
+                if (scaleOnPress) {
+                    canvas.restore();
+                }
             }
 
             @Override
             public boolean onTouchEvent(MotionEvent event) {
+                if (isCentered() && isClickable()) {
+                    // MeeroX v254 (cherry-parity): bouncing press feedback in centered mode
+                    final int action = event.getAction();
+                    if (action == MotionEvent.ACTION_DOWN) {
+                        avatarBounce.setPressed(true);
+                    } else if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+                        avatarBounce.setPressed(false);
+                    }
+                }
                 if (isCentered() && avatarOptionsMenuItem != null && avatarOptionsMenuItem.hasSubMenu()) {
                     final int action = event.getActionMasked();
                     if (action == MotionEvent.ACTION_MOVE) {
@@ -366,6 +388,12 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
         titleTextView.setTextColor(getThemedColor(Theme.key_actionBarDefaultTitle));
         titleTextView.setTextSize(18);
         titleTextView.setGravity(isCentered() ? Gravity.CENTER_HORIZONTAL : Gravity.LEFT);
+        // MeeroX v254 (cherry-parity): reserve room for premium emoji + muted bell inside the centered title
+        if (isCentered() && parentFragment != null) {
+            final boolean hasEmoji = parentFragment.getCurrentUser() != null && (parentFragment.getCurrentUser().premium || DialogObject.getEmojiStatusDocumentId(parentFragment.getCurrentUser().emoji_status) != 0)
+                    || parentFragment.getCurrentChat() != null && DialogObject.getEmojiStatusDocumentId(parentFragment.getCurrentChat().emoji_status) != 0;
+            titleTextView.setPadding(hasEmoji && parentFragment.getMessagesController().isDialogMuted(parentFragment.getDialogId(), parentFragment.getTopicId(), parentFragment.getCurrentChat()) ? dp(25) : 0, dp(6), 0, dp(12));
+        }
         titleTextView.setTypeface(AndroidUtilities.bold());
         titleTextView.setLeftDrawableTopPadding(-dp(1.3f));
         // titleTextView.setCanHideRightDrawable(false);
@@ -484,7 +512,7 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
     public boolean onTouchEvent(MotionEvent ev) {
         if (ev.getAction() == MotionEvent.ACTION_DOWN && canSearch()) {
             pressed = true;
-            bounce.setPressed(true);
+            bounce.setPressed(!isCentered()); // MeeroX v254 (cherry-parity): centered pill does not wobble on press
             AndroidUtilities.cancelRunOnUIThread(this.onLongClick);
             AndroidUtilities.runOnUIThread(this.onLongClick, ViewConfiguration.getLongPressTimeout());
             return true;
@@ -509,11 +537,50 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
 
     @Override
     protected void dispatchDraw(Canvas canvas) {
-        canvas.save();
-        final float s = bounce.getScale(.02f);
-        canvas.scale(s, s, getPivotX(), getHeight() - ActionBar.getCurrentActionBarHeight() / 2f);
-        super.dispatchDraw(canvas);
-        canvas.restore();
+        if (isCentered()) {
+            // MeeroX v254 (cherry-parity): centered children scale around the middle,
+            // avatar drawn last like Cherrygram does
+            long drawingTime = getDrawingTime();
+
+            canvas.save();
+
+            float s = bounce.getScale(.02f);
+            canvas.scale(s, s, getWidth() / 2f, getHeight() - ActionBar.getCurrentActionBarHeight() / 2f);
+
+            for (int i = 0; i < getChildCount(); i++) {
+                View child = getChildAt(i);
+                if (child == avatarImageView) {
+                    continue;
+                }
+                drawChild(canvas, child, drawingTime);
+            }
+
+            canvas.restore();
+
+            if (avatarImageView != null) {
+                drawChild(canvas, avatarImageView, drawingTime);
+            }
+        } else {
+            canvas.save();
+            final float s = bounce.getScale(.02f);
+            canvas.scale(s, s, getPivotX(), getHeight() - ActionBar.getCurrentActionBarHeight() / 2f);
+            super.dispatchDraw(canvas);
+            canvas.restore();
+        }
+        // MeeroX v254: Cherrygram "Glare effects" - animated liquid-glass shine over the centered header pill
+        if (isCentered() && meeroGlareOn()) {
+            org.telegram.ui.Components.MeeroGlareLayer.draw(canvas, 0, dp(3), getWidth(), getHeight() - dp(5), dp(15), System.currentTimeMillis());
+            postInvalidateOnAnimation();
+        }
+    }
+
+    /** MeeroX v254: gate for the Cherrygram glare switch (slow devices keep it silent). */
+    protected boolean meeroGlareOn() {
+        try {
+            return tw.nekomimi.nekogram.NekoConfig.meeroGlare.Bool();
+        } catch (Throwable ignore) {
+            return false;
+        }
     }
 
     @Override
@@ -565,7 +632,7 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
         return super.dispatchTouchEvent(ev);
     }
 
-    protected boolean isCentered() {
+    public boolean isCentered() { // MeeroX v254 (cherry-parity): widened to public so ActionBar adaptive layout can read it
         return false;
     }
 

@@ -207,6 +207,13 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
     private boolean glassModeIsForum;
 
     private ChatAvatarContainer chatAvatarContainer;
+    // MeeroX v254 (cherry-parity): centered-title owns a dedicated container slot,
+    // the glass pill hugs it with an animated adaptive width
+    private ChatAvatarContainer chatAvatarContainer2;
+
+    public void setChatAvatarContainer2(ChatAvatarContainer chatAvatarContainer) {
+        this.chatAvatarContainer2 = chatAvatarContainer;
+    }
 
     public void setGlassOnlyBack() {
         glassOnlyBack = true;
@@ -214,6 +221,37 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
 
     public void setChatAvatarContainer(ChatAvatarContainer chatAvatarContainer) {
         this.chatAvatarContainer = chatAvatarContainer;
+    }
+
+    // MeeroX v254: Adaptive bubble width (Cherrygram port)
+    private boolean meeroForceAdaptiveWidth;
+    private final FactorAnimator animatorAdaptiveWidth = new FactorAnimator(0, this, CubicBezierInterpolator.EASE_OUT_QUINT, 380);
+
+    public void setForceAdaptiveWidth(boolean forceAdaptiveWidth) {
+        this.meeroForceAdaptiveWidth = forceAdaptiveWidth;
+        invalidate();
+    }
+
+    private boolean isAdaptiveWidthSupported() {
+        if (chatAvatarContainer2 == null || chatAvatarContainer2.getTitleTextView() == null) {
+            return false;
+        }
+        if (meeroForceAdaptiveWidth) {
+            return true;
+        }
+        try {
+            return tw.nekomimi.nekogram.NekoConfig.meeroCherryAdaptive.Bool() && chatAvatarContainer2.isCentered();
+        } catch (Throwable e) {
+            return false;
+        }
+    }
+
+    private int getBackPillWidth() {
+        return dp(46) + dp(6) * 2;
+    }
+
+    public int getBackPillGrowth() {
+        return 0; // MeeroX v254: normal unread-chip only (iOS counter pill intentionally not ported - his pick)
     }
 
     public void setupGlass(BlurredBackgroundDrawableViewFactory factory, BlurredBackgroundColorProvider colorProvider) {
@@ -2397,25 +2435,61 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
     }
 
     public void checkAvatarContainerWidth(boolean animated) {
-        if (chatAvatarContainer == null) {
-            return;
-        }
-
-        final boolean hasAvatar = chatAvatarContainer.hasVisibleAvatar();
-        int visualWidth = chatAvatarContainer.getVisualWidth();
-        if (hasAvatar) {
-            //visualWidth = Math.max(visualWidth, dp(168));
-        }
-
-        final int width = Math.min(getMeasuredWidth() - dp(6 + 46 + 6 + 6 + 46 + 6), visualWidth);
-        if (animated) {
-            if (animatorAvatarContainerWidth.getToFactor() != width) {
-                animatorAvatarContainerWidth.animateTo(width);
+        if (chatAvatarContainer != null) {
+            final boolean hasAvatar = chatAvatarContainer.hasVisibleAvatar();
+            int visualWidth = chatAvatarContainer.getVisualWidth();
+            if (hasAvatar) {
+                //visualWidth = Math.max(visualWidth, dp(168));
             }
-        } else {
-            animatorAvatarContainerWidth.forceFactor(width);
+
+            final int width = Math.min(getMeasuredWidth() - dp(6 + 46 + 6 + 6 + 46 + 6), visualWidth);
+            if (animated) {
+                if (animatorAvatarContainerWidth.getToFactor() != width) {
+                    animatorAvatarContainerWidth.animateTo(width);
+                }
+            } else {
+                animatorAvatarContainerWidth.forceFactor(width);
+            }
+            animatorAvatarContainerHasAvatar.setValue(hasAvatar, animated);
         }
-        animatorAvatarContainerHasAvatar.setValue(hasAvatar, animated);
+
+        // MeeroX v254 (cherry-parity): Adaptive bubble width — target hugs the title text, animated
+        if (isAdaptiveWidthSupported()) {
+            int titleWidth = (int) chatAvatarContainer2.getTitleTextView().getExactWidthIncludeDrawables();
+            int subtitleWidth = 0;
+            if (chatAvatarContainer2.getSubtitleTextView() instanceof SimpleTextView) {
+                subtitleWidth = (int) ((SimpleTextView) chatAvatarContainer2.getSubtitleTextView()).getExactWidthIncludeDrawables();
+            }
+            int textWidth = Math.max(titleWidth, subtitleWidth);
+
+            int targetWidth = Math.max(dp(100), textWidth + dp(40));
+            targetWidth += dp(15);
+
+            final int p = dp(6);
+            final int s = dp(46);
+            final boolean hasBackButton = backButtonImageView != null && backButtonImageView.getVisibility() == View.VISIBLE;
+            int defaultMenuWidth = Math.max(0, menu != null ? (int) menu.getItemsWidth() - dp(1) - dp(1) : 0);
+            if (menu != null && menu.isCenteredTitle()) {
+                defaultMenuWidth = (int) lerp(Math.max(defaultMenuWidth, s), defaultMenuWidth, searchFactor);
+            }
+            final int actionMenuWidth = Math.max(0, actionMode != null ? (int) actionMode.getItemsWidth() - dp(1) - dp(1) : 0);
+            final int menuWidth = hasForcedMenuWidth ? forcedMenuWidth : (int) lerp(defaultMenuWidth, actionMenuWidth, getActionModeFactor());
+            final int menuWidthWithPadding = menuWidth > 0 ? (menuWidth + p) : 0;
+            final int rightOffset = (int) lerp(menuWidthWithPadding, Math.max(menuWidthWithPadding, p + s), 0f);
+            final int leftDefault = (int) lerp(hasBackButton ? getBackPillWidth() - p : 0, s + p, 0f);
+            final int rightDefault = getWidth() - rightOffset;
+            final int widthDefault = rightDefault - leftDefault;
+
+            targetWidth = Math.min(widthDefault, targetWidth);
+
+            if (animated) {
+                if (animatorAdaptiveWidth.getToFactor() != targetWidth) {
+                    animatorAdaptiveWidth.animateTo(targetWidth);
+                }
+            } else {
+                animatorAdaptiveWidth.forceFactor(targetWidth);
+            }
+        }
     }
 
     private final FactorAnimator animatorAvatarContainerWidth = new FactorAnimator(0, this, CubicBezierInterpolator.EASE_OUT_QUINT, 380);
@@ -2506,6 +2580,26 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
                     + p + dp(3);
                 chatAvatarContainer.setTranslationX(translationX);
                 chatAvatarContainer.setPivotX((chatAvatarContainer.getMeasuredWidth()) / 2f - translationX );
+            } else if (isAdaptiveWidthSupported()) {
+                // MeeroX v254 (cherry-parity): adaptive centered pill, animated around the middle
+                final int baseLeftDefault = hasBackButton ? (s + p * 2) - p : 0;
+                int width = (int) animatorAdaptiveWidth.getFactor();
+                if (width <= 0) {
+                    int titleWidth = (int) chatAvatarContainer2.getTitleTextView().getExactWidthIncludeDrawables();
+                    int subtitleWidth = 0;
+                    if (chatAvatarContainer2.getSubtitleTextView() instanceof SimpleTextView) {
+                        subtitleWidth = (int) ((SimpleTextView) chatAvatarContainer2.getSubtitleTextView()).getExactWidthIncludeDrawables();
+                    }
+                    width = Math.max(dp(100), Math.max(titleWidth, subtitleWidth) + dp(40));
+                    width += dp(15);
+                    width = Math.min(widthDefault, width);
+                    animatorAdaptiveWidth.forceFactor(width);
+                }
+                width = Math.min(width, widthDefault);
+                final int baseCenter = (baseLeftDefault + rightDefault) / 2;
+                final int baseLeft = baseCenter - width / 2;
+                left = Math.max(baseLeft, leftDefault);
+                right = left + width;
             } else {
                 left = leftDefault;
                 right = rightDefault;

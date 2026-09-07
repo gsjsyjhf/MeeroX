@@ -4044,7 +4044,11 @@ public class ChatActivity extends BaseFragment implements
         if (inPreviewMode) {
             actionBar.setBackButtonDrawable(null);
         } else {
-            actionBar.setBackButtonDrawable(new BackDrawable(isReport()));
+            // MeeroX v254 (cherry-parity): clean stick-less back button when centered + unread counter shows instantly on open
+            BackDrawable backDrawable = new BackDrawable(isReport());
+            backDrawable.setShowStick(!isTitleCentered());
+            actionBar.setBackButtonDrawable(backDrawable);
+            actionBar.unreadBadgeSetCount(getMessagesStorage().getMainUnreadCount());
         }
 
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
@@ -4608,7 +4612,7 @@ public class ChatActivity extends BaseFragment implements
             }
 
             @Override
-            protected boolean isCentered() {
+            public boolean isCentered() {
                 return isTitleCentered();
             }
 
@@ -5107,7 +5111,11 @@ public class ChatActivity extends BaseFragment implements
             BlurredBackgroundProviderImpl.topPanelChatActivity(themeDelegate),
             ChatObject.isForum(currentChat));
 
-        if (chatMode == MODE_PINNED) {
+        // MeeroX v254 (cherry-parity): centered title hosts the avatar container in its own ActionBar slot
+        if (isTitleCentered()) {
+            avatarContainer.setActionBar(actionBar);
+            actionBar.setChatAvatarContainer2(avatarContainer);
+        } else if (chatMode == MODE_PINNED) {
             actionBar.setChatAvatarContainer(avatarContainer);
             avatarContainer.setActionBar(actionBar);
         } else if (chatMode == MODE_WELCOME_MESSAGES) {
@@ -49954,7 +49962,24 @@ public class ChatActivity extends BaseFragment implements
         return canShowCenteredTitle(this);
     }
 
+    /** MeeroX v254: Cherrygram centre-title master switch (default ON; gated defensively). */
+    private boolean meeroCherryTitleOn() {
+        try {
+            return tw.nekomimi.nekogram.NekoConfig.meeroCherryTitle.Bool();
+        } catch (Throwable ignore) {
+            return false;
+        }
+    }
+
     private boolean canShowCenteredTitle(ChatActivity parentFragment) {
+        // MeeroX v254 (cherry-parity, his sealed order): Cherrygram center-title switch
+        if (parentFragment != null && parentFragment.meeroCherryTitleOn()) {
+            return !parentFragment.isReport()
+                    && parentFragment.getChatMode() != ChatActivity.MODE_SEARCH
+                    && parentFragment.getChatMode() != ChatActivity.MODE_SAVED
+                    && parentFragment.getChatMode() != ChatActivity.MODE_WELCOME_MESSAGES
+                    && parentFragment.getDialogId() != UserConfig.getInstance(UserConfig.selectedAccount).getClientUserId();
+        }
         if (!NaConfig.INSTANCE.getCenterActionBarTitle().Bool()) {
             return false;
         }

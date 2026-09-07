@@ -20424,6 +20424,31 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
     protected void onDraw(Canvas canvas) {
         drawInternal(canvas);
     }
+
+    // MeeroX v254 — Cherrygram "Glare effects": moving liquid-glass shine over the bubble body
+    @Override
+    protected void dispatchDraw(Canvas canvas) {
+        super.dispatchDraw(canvas);
+        if (meeroGlareOn() && !mediaBackground) {
+            org.telegram.ui.Components.MeeroGlareLayer.draw(canvas,
+                    getBackgroundDrawableLeft(), getBackgroundDrawableTop(),
+                    getBackgroundDrawableRight(), getBackgroundDrawableBottom(),
+                    android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_DIP, 16, getResources().getDisplayMetrics()),
+                    System.currentTimeMillis());
+            postInvalidateOnAnimation();
+        }
+    }
+
+    private boolean meeroGlareOn() {
+        if (currentMessageObject == null) {
+            return false;
+        }
+        try {
+            return tw.nekomimi.nekogram.NekoConfig.meeroGlare.Bool();
+        } catch (Throwable ignore) {
+            return false;
+        }
+    }
     @SuppressLint("WrongCall")
     public void drawInternal(Canvas canvas) {
         if (currentMessageObject == null) {

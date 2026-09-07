@@ -76,7 +76,7 @@ public class NekoConfig {
     public static final ArrayList<DatacenterInfo> datacenterInfos = new ArrayList<>(5);
 
     // Configs
-    public static ConfigItem unreadBadgeOnBackButton = addConfig("unreadBadgeOnBackButton", configTypeBool, false);
+    public static ConfigItem unreadBadgeOnBackButton = addConfig("unreadBadgeOnBackButton", configTypeBool, true); // MeeroX v254: ON by default (his Cherrygram pack pick: unread counter on back button, normal style)
     public static ConfigItem useCustomEmoji = addConfig("useCustomEmoji", configTypeBool, false);
     public static ConfigItem repeatConfirm = addConfig("repeatConfirm", configTypeBool, true);
     public static ConfigItem disableInstantCamera = addConfig("DisableInstantCamera", configTypeBool, true);
@@ -170,6 +170,10 @@ public class NekoConfig {
     // @i55544's profile. 0 = tiled-name pattern (DEFAULT), 1 = blurred
     // profile photo, 2 = off. The settings row shows only on his device.
     public static ConfigItem meeroDevProfileBg = addConfig("meeroDevProfileBg", configTypeInt, 0);
+    // MeeroX v254 — Cherrygram chat-header pack (his sealed order, ported from github.com/arsLan4k1390/Cherrygram)
+    public static ConfigItem meeroCherryTitle = addConfig("meeroCherryTitle", configTypeBool, true);
+    public static ConfigItem meeroCherryAdaptive = addConfig("meeroCherryAdaptive", configTypeBool, true);
+    public static ConfigItem meeroGlare = addConfig("meeroGlare", configTypeBool, true);
     public static ConfigItem meeroIosWaveform = addConfig("meeroIosWaveform", configTypeBool, true);
     public static ConfigItem meeroIosSelection = addConfig("meeroIosSelection", configTypeBool, true);
     public static ConfigItem meeroIosRow = addConfig("meeroIosRow", configTypeBool, true);
