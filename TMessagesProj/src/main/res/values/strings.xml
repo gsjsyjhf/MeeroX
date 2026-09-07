@@ -11250,4 +11250,5 @@
     <string name="MeeroStyleCode">Code</string>
     <!-- MeeroX v231: fast-motion switch (Motion settings) -->
     <string name="MeeroFastAnimTitle">Fast animations (0.75×)</string>
+    <string name="MeeroDevProfileBg">Dev profile wallpaper</string>
 </resources>

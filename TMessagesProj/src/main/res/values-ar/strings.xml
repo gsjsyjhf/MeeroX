@@ -1267,4 +1267,5 @@
     <string name="MeeroStyleCode">كود</string>
     <!-- MeeroX v231: fast-motion switch (Motion settings) -->
     <string name="MeeroFastAnimTitle">حركات أسرع (0.75×)</string>
+    <string name="MeeroDevProfileBg">خلفية بروفايل المطوّر</string>
 </resources>

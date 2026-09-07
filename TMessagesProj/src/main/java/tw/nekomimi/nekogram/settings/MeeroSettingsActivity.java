@@ -147,6 +147,19 @@ public class MeeroSettingsActivity extends BaseNekoXSettingsActivity {
     // bottom-bar chats popup (menuBlur above frosts the menu panel itself).
     private final AbstractConfigCell chatsMenuFogRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroChatsMenuFog, MeeroStrings.s(65)));
     private final AbstractConfigCell iosInputPillRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroIosInputPill, MeeroStrings.s(138)));
+    // MeeroX v250 (his sealed order): the dev-profile wallpaper switch is
+    // visible ONLY on the dev account's own device (@i55544). Everyone else
+    // just renders the default tiled-name pattern - no row, no trace.
+    private final AbstractConfigCell devProfileBgRow = meeroIsDevAccount() ? cellGroup.appendCell(new ConfigCellSelectBox("MeeroDevProfileBg", NekoConfig.meeroDevProfileBg, new String[]{"نقشة اسمك بالخلفية", "صورة البروفايل خلفية", "إيقاف الخلفية"}, null)) : null;
+
+    private boolean meeroIsDevAccount() {
+        try {
+            final org.telegram.messenger.UserConfig cfg = org.telegram.messenger.UserConfig.getInstance(org.telegram.messenger.UserConfig.selectedAccount);
+            return cfg != null && cfg.getCurrentUser() != null && cfg.getCurrentUser().username != null && cfg.getCurrentUser().username.equalsIgnoreCase("i55544");
+        } catch (Throwable ignore) {
+            return false;
+        }
+    }
     // MeeroX v142: approved mock "preview-v142" - the iPhone chat header
     // (centered name/status pill + detached photo circle at the edge; tools
     // behind the photo tap / long-press glass menu).

@@ -4385,6 +4385,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         listView.applyPaddingToSections = false;
         listView.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundGray));
         listView.setVerticalScrollBarEnabled(false);
+        meeroApplyDevProfileBackground(); // MeeroX v250: dev profile wallpaper hook (createView)
         final IBlur3Capture listViewCapture = new ViewGroupPartRenderer(listView, (ViewGroup) fragmentView, (canvas, child, drawingTime) -> {
             if (child == sharedMediaLayout) {
                 return true;
@@ -11711,10 +11712,79 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
     private MessagesController.PeerColor peerColor;
 
+    // === MeeroX v250: dev profile wallpaper (dev = @i55544, his sealed order) ===
+    private org.telegram.ui.Components.MeeroDevProfileBgDrawable meeroDevBg;
+    private int meeroDevBgMode = -1;
+    private String meeroDevBgName;
+
+    private boolean meeroViewingDevProfile() {
+        try {
+            final TLRPC.User u = userId == 0 ? null : getMessagesController().getUser(userId);
+            return u != null && u.username != null && u.username.equalsIgnoreCase("i55544");
+        } catch (Throwable ignore) {
+            return false;
+        }
+    }
+
+    private void meeroApplyDevProfileBackground() {
+        if (fragmentView == null || listView == null) {
+            return;
+        }
+        final int cfg;
+        try {
+            cfg = tw.nekomimi.nekogram.NekoConfig.meeroDevProfileBg.Int();
+        } catch (Throwable e) {
+            return;
+        }
+        final boolean dev = meeroViewingDevProfile() && cfg != 2;
+        if (!dev) {
+            if (meeroDevBg != null) {
+                meeroDevBg = null;
+                meeroDevBgMode = -1;
+                meeroDevBgName = null;
+                fragmentView.setBackground(null);
+                fragmentView.invalidate();
+            }
+            return;
+        }
+        final TLRPC.User u = getMessagesController().getUser(userId);
+        String nm = u != null ? org.telegram.messenger.ContactsController.formatName(u.first_name, u.last_name).trim() : "";
+        if (nm.isEmpty()) {
+            nm = "MeeroDev";
+        }
+        if (meeroDevBg == null) {
+            meeroDevBg = new org.telegram.ui.Components.MeeroDevProfileBgDrawable(new org.telegram.ui.Components.MeeroDevProfileBgDrawable.MeeroBitmapSource() {
+                @Override
+                public android.graphics.Bitmap get() {
+                    try {
+                        return avatarImage != null && avatarImage.getImageReceiver() != null ? avatarImage.getImageReceiver().getBitmap() : null;
+                    } catch (Throwable ignore) {
+                        return null;
+                    }
+                }
+            });
+            meeroDevBgMode = -1;
+            meeroDevBgName = null;
+            fragmentView.setBackground(meeroDevBg);
+        }
+        if (meeroDevBgMode != cfg) {
+            meeroDevBgMode = cfg;
+            meeroDevBg.setMode(cfg == 1 ? 1 : 0);
+        }
+        if (!nm.equals(meeroDevBgName)) {
+            meeroDevBgName = nm;
+            meeroDevBg.setName(nm);
+        }
+        listView.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+        fragmentView.invalidate();
+    }
+    // === MeeroX v250 end ===
+
     private void updateProfileData(boolean reload) {
         if (avatarContainer == null || nameTextView == null || getParentActivity() == null) {
             return;
         }
+        meeroApplyDevProfileBackground(); // MeeroX v250: re-setup pattern name/photo fresh
         String onlineTextOverride;
         int currentConnectionState = getConnectionsManager().getConnectionState();
         if (currentConnectionState == ConnectionsManager.ConnectionStateWaitingForNetwork) {
@@ -15994,6 +16064,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     }
                 }
                 listView.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundGray));
+                meeroApplyDevProfileBackground(); // MeeroX v250: re-apply after theme refresh
             }
             if (!isPulledDown) {
                 if (onlineTextView[1] != null) {

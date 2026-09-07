@@ -166,6 +166,10 @@ public class NekoConfig {
     public static ConfigItem meeroMixerBg = addConfig("meeroMixerBg", configTypeInt, 0);
     public static ConfigItem meeroMixerInBubble = addConfig("meeroMixerInBubble", configTypeInt, 0);
     public static ConfigItem meeroIosInputPill = addConfig("meeroIosInputPill", configTypeBool, true);
+    // MeeroX v250 (his sealed order): dev-profile wallpaper mode for
+    // @i55544's profile. 0 = tiled-name pattern (DEFAULT), 1 = blurred
+    // profile photo, 2 = off. The settings row shows only on his device.
+    public static ConfigItem meeroDevProfileBg = addConfig("meeroDevProfileBg", configTypeInt, 0);
     public static ConfigItem meeroIosWaveform = addConfig("meeroIosWaveform", configTypeBool, true);
     public static ConfigItem meeroIosSelection = addConfig("meeroIosSelection", configTypeBool, true);
     public static ConfigItem meeroIosRow = addConfig("meeroIosRow", configTypeBool, true);
