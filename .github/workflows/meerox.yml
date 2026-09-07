@@ -101,6 +101,13 @@ jobs:
       - name: Configure build
         run: |
           echo "sdk.dir=${ANDROID_HOME}" >> local.properties
+          # MeeroX v255.2 hotfix: for beta side-load builds, register the beta
+          # package as an extra google-services client locally (CI-only copy).
+          # Runtime FCM push needs the package whitelisted in console, so beta
+          # builds may rely on foreground polling - expected for a test app.
+          if [ -n "$MEERO_PACKAGE" ]; then
+            jq --arg pkg "$MEERO_PACKAGE" '.client[0] as $c | .client += [$c | .client_info.android_client_info.package_name = $pkg]' TMessagesProj/google-services.json > /tmp/gs.json && mv /tmp/gs.json TMessagesProj/google-services.json
+          fi
           # Signing: the repo ships a debug-usable keystore, reuse it so the
           # APK installs. Passwords come from the upstream defaults.
           # Our own keystore (TMessagesProj/release.keystore is replaced with it),
