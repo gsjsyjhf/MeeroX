@@ -16,7 +16,7 @@ import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.Utilities;
 
 /**
- * MeeroX v250-v252 — developer-profile header wallpaper (his sealed orders, dev = @i55544).
+ * MeeroX v250-v253 — developer-profile header wallpaper (his sealed orders, dev = @i55544).
  *
  * Painted by ProfileActivity.TopView.onDraw INSIDE the stock header block
  * only (v252: he wants the pattern strictly top-only like ellipi; below the
@@ -112,6 +112,12 @@ public class MeeroDevProfileBgDrawable extends Drawable {
         if (b.width() <= 0 || b.height() <= 0) {
             return;
         }
+        // MeeroX v253: CLIP TO THE HEADER BOUNDS — the gradient/dim fills below
+        // use drawPaint/drawColor which ignore getBounds() and paint the WHOLE
+        // canvas clip; as a header-only drawable (bounds < view) that leaked
+        // over the stories/info rows below the header (his v252 screenshot bugs)
+        canvas.save();
+        canvas.clipRect(b);
         if (mode == 1) {
             Bitmap src = null;
             if (bitmapSource != null) {
@@ -131,6 +137,7 @@ public class MeeroDevProfileBgDrawable extends Drawable {
                 if (blurred != null && !blurred.isRecycled()) {
                     canvas.drawBitmap(blurred, null, b, null);
                     canvas.drawColor(Color.argb((int) (DIM_PHOTO * 255), 0, 0, 0));
+                    canvas.restore(); // MeeroX v253: must balance the header-clip save before the early return
                     return;
                 }
             } else {
@@ -164,6 +171,7 @@ public class MeeroDevProfileBgDrawable extends Drawable {
             canvas.restore();
         }
         canvas.drawColor(Color.argb((int) (DIM_PATTERN * 255), 0, 0, 0));
+        canvas.restore();
     }
 
     @Override
