@@ -49,11 +49,9 @@ import tw.nekomimi.nekogram.NekoConfig;
 import tw.nekomimi.nekogram.ui.cells.HeaderCell;
 import tw.nekomimi.nekogram.config.CellGroup;
 import tw.nekomimi.nekogram.config.cell.AbstractConfigCell;
-import tw.nekomimi.nekogram.config.cell.ConfigCellCustom;
 import tw.nekomimi.nekogram.config.cell.ConfigCellDivider;
 import tw.nekomimi.nekogram.config.cell.ConfigCellHeader;
 import tw.nekomimi.nekogram.config.cell.ConfigCellSelectBox;
-import tw.nekomimi.nekogram.config.cell.ConfigCellText;
 import tw.nekomimi.nekogram.config.cell.ConfigCellTextCheck;
 import xyz.nextalone.nagram.NaConfig;
 
@@ -153,82 +151,10 @@ public class MeeroSettingsActivity extends BaseNekoXSettingsActivity {
     // visible ONLY on the dev account's own device (@i55544). Everyone else
     // just renders the default tiled-name pattern - no row, no trace.
     private final AbstractConfigCell devProfileBgRow = meeroIsDevAccount() ? cellGroup.appendCell(new ConfigCellSelectBox("MeeroDevProfileBg", NekoConfig.meeroDevProfileBg, new String[]{"نقشة اسمك بالخلفية", "صورة البروفايل خلفية", "إيقاف الخلفية"}, null)) : null;
-    // ---------------------------------------------------------------
-    // MeeroX v256 (his sealed order): the four v254 chat-top-strip buttons
-    // moved OUT of standalone rows into ONE collapsible row with a live
-    // preview above the switches (exact reference behavior) + his custom
-    // "رجوع للأصلي" master row first. Same config keys, so saved values
-    // carry over untouched. Order he approved: stock -> center -> adaptive
-    // -> glare -> unread-on-back, live preview on top.
-    // MeeroX v255's message-menu pack rows SLEEP at his order ("ماريد هاي
-    // ميزات"): the six rows that stood here are gone from the UI and the
-    // five bool defaults flipped OFF in NekoConfig; the code sleeps with
-    // them. The pack's sleeping helpers (MeeroMsgMenu etc.) stay dormant.
-    // ---------------------------------------------------------------
-    private boolean meeroHdrExpanded = false; // session-only, like the reference
-    private final ArrayList<AbstractConfigCell> meeroHdrSubRows = new ArrayList<>();
-    private AbstractConfigCell hdrGroupRow;
-    private int meeroHdrAnchor = -1;
-
-    private final ConfigCellCustom hdrPreviewRow = new ConfigCellCustom("meeroHdrPreview", ConfigCellCustom.CUSTOM_ITEM_MeeroHeaderPreview, false);
-    private final ConfigCellTextCheck hdrStockRow = new ConfigCellTextCheck(NekoConfig.meeroHeaderStock,
-            "يرجع الهيدر لشكل تيليجرام الأصلي؛ يطفي التوسيط والعرض المتكيّف حتى تطفئه", "رجوع للأصلي");
-    private final ConfigCellTextCheck hdrCenterRow = new ConfigCellTextCheck(NekoConfig.meeroCherryTitle,
-            "كبسولة زجاجية بالوسط، تشتغل بدون إعادة تشغيل", "توسيط عنوان الدردشة ✦");
-    private final ConfigCellTextCheck hdrAdaptiveRow = new ConfigCellTextCheck(NekoConfig.meeroCherryAdaptive,
-            "الكبسولة تتسع وتضيق بعرض الاسم والحالة بدل العرض الثابت", "عرض الكبسولة متكيّف ✦");
-    private final ConfigCellTextCheck hdrGlareRow = new ConfigCellTextCheck(NekoConfig.meeroGlare,
-            "لمعة زجاجية متحركة تعبر كبسولة العنوان وفقاعات الرسائل", "تأثيرات البريق ✦");
-    private final ConfigCellTextCheck hdrBadgeRow = new ConfigCellTextCheck(NekoConfig.unreadBadgeOnBackButton,
-            "عداد أحمر يعد محادثاتك غير المقروءة الثانية وأنت داخل دردشة", "عداد غير المقروء على زر الرجوع");
-
-    {
-        // park the collapsible block exactly where the four old rows stood
-        meeroHdrAnchor = cellGroup.rows.size();
-        meeroRebuildHdrRows();
-    }
-
-    private void meeroToggleHdrGroup() {
-        meeroHdrExpanded = !meeroHdrExpanded;
-        meeroRebuildHdrRows();
-        if (listAdapter != null) {
-            listAdapter.notifyDataSetChanged();
-        }
-    }
-
-    private void meeroRebuildHdrRows() {
-        cellGroup.rows.removeAll(meeroHdrSubRows);
-        if (hdrGroupRow != null) {
-            cellGroup.rows.remove(hdrGroupRow);
-        }
-        meeroHdrSubRows.clear();
-        int idx = meeroHdrAnchor;
-        hdrGroupRow = new ConfigCellText("شريط الدردشة العلوي ✦", meeroHdrExpanded ? "⌄" : "‹", this::meeroToggleHdrGroup);
-        hdrGroupRow.bindCellGroup(cellGroup);
-        cellGroup.rows.add(idx++, hdrGroupRow);
-        if (meeroHdrExpanded) {
-            meeroHdrSubRows.add(hdrPreviewRow);
-            meeroHdrSubRows.add(hdrStockRow);
-            meeroHdrSubRows.add(hdrCenterRow);
-            meeroHdrSubRows.add(hdrAdaptiveRow);
-            meeroHdrSubRows.add(hdrGlareRow);
-            meeroHdrSubRows.add(hdrBadgeRow);
-            for (AbstractConfigCell c : meeroHdrSubRows) {
-                c.bindCellGroup(cellGroup);
-                cellGroup.rows.add(idx++, c);
-            }
-            meeroUpdateHdrEnableds();
-        }
-    }
-
-    // MeeroX v256: greying rules he picked - stock mode greys center+adaptive;
-    // a switched-off center greys adaptive (visible but grey, never hidden).
-    private void meeroUpdateHdrEnableds() {
-        boolean stock = NekoConfig.meeroHeaderStock.Bool();
-        boolean center = NekoConfig.meeroCherryTitle.Bool();
-        hdrCenterRow.setEnabled(!stock);
-        hdrAdaptiveRow.setEnabled(!stock && center);
-    }
+    // MeeroX v257 (his order «انقله كله للمحادثات»): the v256 collapsible
+    // chat-top-strip section that stood here MOVED to the «المحادثات»
+    // sub-screen (NekoChatSettingsActivity, top). Nothing of it stays in
+    // this screen — no duplicate copies (his pick: one place, no repeats).
 
     private boolean meeroIsDevAccount() {
         try {
@@ -339,14 +265,6 @@ public class MeeroSettingsActivity extends BaseNekoXSettingsActivity {
         cellGroup.callBackSettingsChanged = (key, newValue) -> {
             if (NekoConfig.meeroFastAnimations.getKey().equals(key)) {
                 tw.nekomimi.nekogram.MeeroFastMotion.apply();
-            }
-            // MeeroX v256: live greying inside the chat-top-strip section
-            if (NekoConfig.meeroHeaderStock.getKey().equals(key)
-                    || NekoConfig.meeroCherryTitle.getKey().equals(key)) {
-                meeroUpdateHdrEnableds();
-                if (listAdapter != null) {
-                    listAdapter.notifyDataSetChanged();
-                }
             }
         };
         addRowsToMap(cellGroup);
@@ -630,16 +548,6 @@ public class MeeroSettingsActivity extends BaseNekoXSettingsActivity {
     private class ListAdapter extends BaseListAdapter {
         public ListAdapter(Context context) {
             super(context);
-        }
-
-        @Override
-        protected View onCreateCustomViewHolder(@NonNull ViewGroup parent, int viewType) {
-            // MeeroX v256: the live chat-top-strip preview row (real header
-            // widgets over the real wallpaper, his own name and photo).
-            if (viewType == ConfigCellCustom.CUSTOM_ITEM_MeeroHeaderPreview) {
-                return new MeeroHeaderPreviewView(mContext, MeeroSettingsActivity.this, getResourceProvider());
-            }
-            return super.onCreateCustomViewHolder(parent, viewType);
         }
 
         @Override

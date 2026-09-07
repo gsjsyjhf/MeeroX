@@ -56,6 +56,7 @@ import tw.nekomimi.nekogram.config.cell.ConfigCellCustom;
 import tw.nekomimi.nekogram.config.cell.ConfigCellDivider;
 import tw.nekomimi.nekogram.config.cell.ConfigCellHeader;
 import tw.nekomimi.nekogram.config.cell.ConfigCellSelectBox;
+import tw.nekomimi.nekogram.config.cell.ConfigCellText;
 import tw.nekomimi.nekogram.config.cell.ConfigCellTextCheck;
 import tw.nekomimi.nekogram.config.cell.ConfigCellTextCheck2;
 import tw.nekomimi.nekogram.config.cell.ConfigCellTextCheckIcon;
@@ -96,6 +97,80 @@ public class NekoChatSettingsActivity extends BaseNekoXSettingsActivity implemen
     }
 
     private final CellGroup cellGroup = new CellGroup(this);
+
+    // ---------------------------------------------------------------
+    // MeeroX v257 (his sealed order + placement pick «انقله كله»): the
+    // collapsible chat-top-strip section lives at the TOP of this
+    // «المحادثات» screen. One expander row with a chevron; opening it
+    // reveals the LIVE Cherrygram-exact preview (real header widgets,
+    // his own name/photo, real wallpaper) and the four v254 buttons in
+    // the order he approved, led by his custom "رجوع للأصلي" master
+    // row. Same config keys as v256 - saved values carry over.
+    // ---------------------------------------------------------------
+    private boolean meeroHdrExpanded = false; // session-only, like the reference
+    private final ArrayList<AbstractConfigCell> meeroHdrSubRows = new ArrayList<>();
+    private AbstractConfigCell hdrGroupRow;
+    private int meeroHdrAnchor = -1;
+
+    private final ConfigCellCustom hdrPreviewRow = new ConfigCellCustom("meeroHdrPreview", ConfigCellCustom.CUSTOM_ITEM_MeeroHeaderPreview, false);
+    private final ConfigCellTextCheck hdrStockRow = new ConfigCellTextCheck(NekoConfig.meeroHeaderStock,
+            "يرجع الهيدر لشكل تيليجرام الأصلي؛ يطفي التوسيط والعرض المتكيّف حتى تطفئه", "رجوع للأصلي");
+    private final ConfigCellTextCheck hdrCenterRow = new ConfigCellTextCheck(NekoConfig.meeroCherryTitle,
+            "كبسولة زجاجية بالوسط، تشتغل بدون إعادة تشغيل", "توسيط عنوان الدردشة ✦");
+    private final ConfigCellTextCheck hdrAdaptiveRow = new ConfigCellTextCheck(NekoConfig.meeroCherryAdaptive,
+            "الكبسولة تتسع وتضيق بعرض الاسم والحالة بدل العرض الثابت", "عرض الكبسولة متكيّف ✦");
+    private final ConfigCellTextCheck hdrGlareRow = new ConfigCellTextCheck(NekoConfig.meeroGlare,
+            "لمعة زجاجية متحركة تعبر كبسولة العنوان وفقاعات الرسائل", "تأثيرات البريق ✦");
+    private final ConfigCellTextCheck hdrBadgeRow = new ConfigCellTextCheck(NekoConfig.unreadBadgeOnBackButton,
+            "عداد أحمر يعد محادثاتك غير المقروءة الثانية وأنت داخل دردشة", "عداد غير المقروء على زر الرجوع");
+
+    {
+        // park the collapsible block at the very top of the screen
+        meeroHdrAnchor = cellGroup.rows.size();
+        meeroRebuildHdrRows();
+    }
+
+    private void meeroToggleHdrGroup() {
+        meeroHdrExpanded = !meeroHdrExpanded;
+        meeroRebuildHdrRows();
+        if (listAdapter != null) {
+            listAdapter.notifyDataSetChanged();
+        }
+    }
+
+    private void meeroRebuildHdrRows() {
+        cellGroup.rows.removeAll(meeroHdrSubRows);
+        if (hdrGroupRow != null) {
+            cellGroup.rows.remove(hdrGroupRow);
+        }
+        meeroHdrSubRows.clear();
+        int idx = meeroHdrAnchor;
+        hdrGroupRow = new ConfigCellText("شريط الدردشة العلوي ✦", meeroHdrExpanded ? "⌄" : "‹", this::meeroToggleHdrGroup);
+        hdrGroupRow.bindCellGroup(cellGroup);
+        cellGroup.rows.add(idx++, hdrGroupRow);
+        if (meeroHdrExpanded) {
+            meeroHdrSubRows.add(hdrPreviewRow);
+            meeroHdrSubRows.add(hdrStockRow);
+            meeroHdrSubRows.add(hdrCenterRow);
+            meeroHdrSubRows.add(hdrAdaptiveRow);
+            meeroHdrSubRows.add(hdrGlareRow);
+            meeroHdrSubRows.add(hdrBadgeRow);
+            for (AbstractConfigCell c : meeroHdrSubRows) {
+                c.bindCellGroup(cellGroup);
+                cellGroup.rows.add(idx++, c);
+            }
+            meeroUpdateHdrEnableds();
+        }
+    }
+
+    // MeeroX v256 rules he picked: stock mode greys center+adaptive; a
+    // switched-off center greys adaptive (visible but grey, never hidden).
+    private void meeroUpdateHdrEnableds() {
+        boolean stock = NekoConfig.meeroHeaderStock.Bool();
+        boolean center = NekoConfig.meeroCherryTitle.Bool();
+        hdrCenterRow.setEnabled(!stock);
+        hdrAdaptiveRow.setEnabled(!stock && center);
+    }
 
     // Sticker Size
     private final AbstractConfigCell headerStickerSize = cellGroup.appendCell(new ConfigCellHeader(getString(R.string.StickerSize)));
@@ -532,7 +607,11 @@ public class NekoChatSettingsActivity extends BaseNekoXSettingsActivity implemen
 
         // Cells: Set OnSettingChanged Callbacks
         cellGroup.callBackSettingsChanged = (key, newValue) -> {
-            if (key.equals(NekoConfig.disableProximityEvents.getKey())) {
+            // MeeroX v257: live greying inside the chat-top-strip section
+            if (key.equals(NekoConfig.meeroHeaderStock.getKey()) || key.equals(NekoConfig.meeroCherryTitle.getKey())) {
+                meeroUpdateHdrEnableds();
+                listAdapter.notifyDataSetChanged();
+            } else if (key.equals(NekoConfig.disableProximityEvents.getKey())) {
                 MediaController.getInstance().recreateProximityWakeLock();
             } else if (key.equals(NekoConfig.showSeconds.getKey())) {
                 tooltip.showWithAction(0, UndoView.ACTION_NEED_RESTART, null, null);
@@ -812,6 +891,12 @@ public class NekoChatSettingsActivity extends BaseNekoXSettingsActivity implemen
         protected View onCreateCustomViewHolder(@NonNull ViewGroup parent, int viewType) {
             View view = null;
             switch (viewType) {
+                // MeeroX v257: live chat-top-strip preview (Cherrygram-exact:
+                // real header widgets over the real wallpaper, his own
+                // name/photo, white-chip back capsule like the reference).
+                case ConfigCellCustom.CUSTOM_ITEM_MeeroHeaderPreview:
+                    view = new MeeroHeaderPreviewView(mContext, NekoChatSettingsActivity.this, getResourceProvider());
+                    break;
                 case ConfigCellCustom.CUSTOM_ITEM_StickerSize:
                     view = stickerSizeCell = new StickerSizeCell(mContext);
                     break;

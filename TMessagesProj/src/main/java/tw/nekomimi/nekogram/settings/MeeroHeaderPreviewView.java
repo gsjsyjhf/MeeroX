@@ -5,11 +5,20 @@ import static org.telegram.messenger.LocaleController.getString;
 
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.text.TextPaint;
 import android.text.TextUtils;
 import android.view.Gravity;
+import android.view.View;
 import android.widget.FrameLayout;
+
+import androidx.core.graphics.ColorUtils;
 
 import org.telegram.messenger.ContactsController;
 import org.telegram.messenger.R;
@@ -30,24 +39,36 @@ import org.telegram.ui.Components.blur3.source.BlurredBackgroundSourceColor;
 import tw.nekomimi.nekogram.NekoConfig;
 
 /**
- * MeeroX v256 (his sealed order): LIVE chat-top-strip preview for the new
- * collapsible "شريط الدردشة العلوي" section in Meero settings. It hosts the
- * app's REAL header widgets (ActionBar + ChatAvatarContainer over the user's
- * actual chat wallpaper, with his own account name and photo), so every
- * switch in the section repaints the genuine thing with zero fake drawing:
- *   - centered glass pill            <- meeroCherryTitle    (gated by stock)
- *   - adaptive pill width            <- meeroCherryAdaptive (gated by title)
- *   - animated glare sweep           <- meeroGlare (drawn by the real widget)
- *   - unread chip on the back button <- unreadBadgeOnBackButton (demo count 10)
- *   - "رجوع للأصلي"                  <- meeroHeaderStock (forces stock layout)
- * A light self-refresh loop watches the configs so toggling a row updates the
- * preview even though the list never rebuilds this cell.
+ * MeeroX v257 (his sealed order): LIVE chat-top-strip preview, rebuilt
+ * Cherrygram-EXACT after his screenshots proved v256 drifted from the
+ * reference. What makes it identical to their settings preview:
+ *
+ *  1) REAL name + REAL photo - via setUserAvatar(user, showSelf = TRUE) so
+ *     Telegram's own saved-messages branch is skipped the CLEAN way (v256's
+ *     missing self-handling rendered the Saved-Messages icon + a garbled
+ *     title; the reference flips user.self instead - our base's two-arg
+ *     overload achieves it without mutating the shared currentUser object).
+ *  2) REAL chat wallpaper guaranteed - non-blocking first, then one
+ *     blocking load on a background thread that repaints when ready.
+ *  3) THEIR back capsule - glass pill holding the chevron + a WHITE count
+ *     chip inside (drawn by MeeroBackCapsule below; the app's REAL chat
+ *     keeps his own red chip - he picked "reference look in the preview
+ *     only"). It covers the stock back button while the capsule is up.
+ *  4) Centered adaptive glass pill over the wallpaper, live-glare, the
+ *     unread chip demo count 10, and "رجوع للأصلي" shows plain stock.
+ *  5) needTime = false - the retired white timer dot can not exist inside
+ *     this preview, by construction.
+ *
+ * A light self-refresh loop repaints on config flips without rebuilding
+ * the row.
  */
 public class MeeroHeaderPreviewView extends FrameLayout {
 
     private final ActionBar actionBar;
     private final ChatAvatarContainer avatarContainer;
+    private final MeeroBackCapsule backCapsule;
     private Drawable backgroundDrawable;
+    private boolean wallpaperKickDone;
 
     private boolean lastCentered;
     private boolean lastAdaptive;
@@ -68,8 +89,6 @@ public class MeeroHeaderPreviewView extends FrameLayout {
         ActionBarMenuItem menuItem = menu.addItem(0, R.drawable.ic_ab_other);
         menuItem.setContentDescription(getString(R.string.AccDescrMoreOptions));
 
-        // Same glass plumbing ChatActivity uses (color source variant - the
-        // wallpaper behind is painted by this view itself in onDraw).
         BlurredBackgroundSourceColor sourceColor = new BlurredBackgroundSourceColor();
         sourceColor.setColor(fragment.getThemedColor(Theme.key_windowBackgroundWhite));
         BlurredBackgroundDrawableViewFactory factory = new BlurredBackgroundDrawableViewFactory(sourceColor);
@@ -77,7 +96,7 @@ public class MeeroHeaderPreviewView extends FrameLayout {
 
         addView(actionBar, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 56, Gravity.CENTER_VERTICAL, 6, 4, 6, 4));
 
-        avatarContainer = new ChatAvatarContainer(context, fragment, true, resourcesProvider) {
+        avatarContainer = new ChatAvatarContainer(context, fragment, false, resourcesProvider) {
             @Override
             public boolean isCentered() {
                 return meeroEffectiveCentered();
@@ -93,7 +112,10 @@ public class MeeroHeaderPreviewView extends FrameLayout {
 
         final TLRPC.User user = UserConfig.getInstance(UserConfig.selectedAccount).getCurrentUser();
         if (user != null) {
-            avatarContainer.setUserAvatar(user);
+            // MeeroX v257 fix: showSelf = true keeps the REAL photo/name path
+            // (v256 hit the Saved-Messages branch -> bookmark icon + garbled
+            // title; reference parity without touching user.self).
+            avatarContainer.setUserAvatar(user, true);
         }
         avatarContainer.setGlassMode();
         avatarContainer.allowShorterStatus = true;
@@ -105,14 +127,18 @@ public class MeeroHeaderPreviewView extends FrameLayout {
         avatarContainer.setSubtitle(getString(R.string.Online));
 
         actionBar.addView(avatarContainer, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.MATCH_PARENT, Gravity.START | Gravity.TOP, 54, 0, 54, 0));
-        // MeeroX v254 wiring: the centered pill lives in the dedicated slot and
-        // the adaptive-width reader hangs off it - mirrors ChatActivity exactly.
         actionBar.setChatAvatarContainer2(avatarContainer);
+
+        backCapsule = new MeeroBackCapsule(context, Theme.getColor(Theme.key_actionBarDefault, resourcesProvider),
+                Theme.getColor(Theme.key_actionBarDefaultIcon, resourcesProvider));
+        FrameLayout.LayoutParams clp = LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT,
+                Gravity.START | Gravity.CENTER_VERTICAL, 8, 0, 0, 0);
+        addView(backCapsule, clp);
 
         lastCentered = meeroEffectiveCentered();
         lastAdaptive = meeroEffectiveAdaptive();
         actionBar.setForceAdaptiveWidth(lastAdaptive);
-        meeroRefreshBadge();
+        meeroRefreshCapsule();
     }
 
     private static boolean meeroEffectiveCentered() {
@@ -131,6 +157,14 @@ public class MeeroHeaderPreviewView extends FrameLayout {
         }
     }
 
+    private static boolean meeroBadgeOn() {
+        try {
+            return NekoConfig.unreadBadgeOnBackButton.Bool();
+        } catch (Throwable ignore) {
+            return false;
+        }
+    }
+
     private String meeroPreviewTitle(TLRPC.User user) {
         if (user != null && (!TextUtils.isEmpty(user.first_name) || !TextUtils.isEmpty(user.last_name))) {
             return ContactsController.formatName(user.first_name, user.last_name);
@@ -138,21 +172,23 @@ public class MeeroHeaderPreviewView extends FrameLayout {
         return "MeeroX"; // no name on account yet - brand placeholder
     }
 
-    private void meeroRefreshBadge() {
-        if (actionBar.backButtonImageView == null) {
-            return;
-        }
-        if (NekoConfig.unreadBadgeOnBackButton.Bool()) {
-            actionBar.unreadBadgeSetCount(10); // demo count; real chat feeds the true number
-        } else {
-            actionBar.backButtonImageView.setUnread(0);
-        }
+    /** Reference parity: capsule visible only in pill mode; chip per switch. */
+    private void meeroRefreshCapsule() {
+        backCapsule.setState(meeroEffectiveCentered(), meeroBadgeOn());
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
         // The user's real chat wallpaper behind the header, cover-scaled.
         Drawable drawable = Theme.getCachedWallpaperNonBlocking();
+        if (drawable == null && !wallpaperKickDone) {
+            // One guaranteed load off the UI thread, then repaint.
+            wallpaperKickDone = true;
+            new Thread(() -> {
+                Theme.getCachedWallpaper();
+                postInvalidate();
+            }, "meero-hdr-wallpaper").start();
+        }
         if (Theme.wallpaperLoadTask != null) {
             invalidate();
         }
@@ -196,8 +232,7 @@ public class MeeroHeaderPreviewView extends FrameLayout {
                 avatarContainer.requestLayout();
                 invalidate();
             }
-            meeroRefreshBadge();
-            // glare sweep frames (only while the pill can actually shine)
+            meeroRefreshCapsule();
             try {
                 if (centered && NekoConfig.meeroGlare.Bool()) {
                     avatarContainer.invalidate();
@@ -221,5 +256,100 @@ public class MeeroHeaderPreviewView extends FrameLayout {
     protected void onDetachedFromWindow() {
         removeCallbacks(meeroRefresher);
         super.onDetachedFromWindow();
+    }
+
+    /**
+     * MeeroX v257: the reference's back capsule - a glass pill around the
+     * chevron carrying the WHITE count chip inside. Pure cosmetics for this
+     * preview (our real chat header keeps the owner's red chip).
+     */
+    private static final class MeeroBackCapsule extends View {
+
+        private final Paint bgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint strokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint chevronPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint chipPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final TextPaint chipTextPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+        private final RectF rect = new RectF();
+        private final Path chevron = new Path();
+        private final Rect textBounds = new Rect();
+        private final int baseColor;
+
+        private boolean show;
+        private boolean chip;
+
+        MeeroBackCapsule(Context context, int actionBarColor, int itemsColor) {
+            super(context);
+            baseColor = actionBarColor;
+            bgPaint.setStyle(Paint.Style.FILL);
+            bgPaint.setColor(ColorUtils.blendARGB(actionBarColor, Color.WHITE, 0.10f));
+            bgPaint.setAlpha(224);
+            strokePaint.setStyle(Paint.Style.STROKE);
+            strokePaint.setStrokeWidth(Math.max(1f, dp(0.66f)));
+            strokePaint.setColor(ColorUtils.blendARGB(actionBarColor, Color.WHITE, 0.28f));
+            strokePaint.setAlpha(110);
+            chevronPaint.setStyle(Paint.Style.STROKE);
+            chevronPaint.setStrokeWidth(dp(1.9f));
+            chevronPaint.setStrokeCap(Paint.Cap.ROUND);
+            chevronPaint.setStrokeJoin(Paint.Join.ROUND);
+            chevronPaint.setColor(itemsColor);
+            chipPaint.setStyle(Paint.Style.FILL);
+            chipPaint.setColor(Color.WHITE);
+            chipTextPaint.setColor(ColorUtils.blendARGB(actionBarColor, Color.BLACK, 0.55f));
+            chipTextPaint.setTextSize(dp(12));
+            chipTextPaint.setFakeBoldText(true);
+            updateVisibilityState();
+        }
+
+        void setState(boolean capsuleVisible, boolean chipVisible) {
+            if (show != capsuleVisible || chip != chipVisible) {
+                show = capsuleVisible;
+                chip = chipVisible;
+                updateVisibilityState();
+                requestLayout();
+                invalidate();
+            }
+        }
+
+        private void updateVisibilityState() {
+            setVisibility(show ? VISIBLE : GONE);
+        }
+
+        @Override
+        protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+            setMeasuredDimension(chip ? dp(63) : dp(38), dp(34));
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            final float w = getWidth(), h = getHeight();
+            rect.set(0.5f, 0.5f, w - 0.5f, h - 0.5f);
+            canvas.drawRoundRect(rect, h / 2f, h / 2f, bgPaint);
+            canvas.drawRoundRect(rect, h / 2f, h / 2f, strokePaint);
+
+            // chevron zone (left when chip shown, centered when alone)
+            float zoneW = chip ? w - dp(33) : w;
+            float cx = zoneW / 2f - dp(1), cy = h / 2f;
+            float dx = dp(4.2f), dy = dp(6.6f);
+            chevron.reset();
+            chevron.moveTo(cx + dx, cy - dy);
+            chevron.lineTo(cx - dx, cy);
+            chevron.lineTo(cx + dx, cy + dy);
+            canvas.drawPath(chevron, chevronPaint);
+
+            if (chip) {
+                // white count chip "10" inside the capsule, reference style
+                String s = "10";
+                chipTextPaint.getTextBounds(s, 0, s.length(), textBounds);
+                float tw = chipTextPaint.measureText(s);
+                float cw = tw + dp(14), chh = dp(21);
+                float cl = w - dp(7.5f) - cw, ct = (h - chh) / 2f;
+                rect.set(cl, ct, cl + cw, ct + chh);
+                canvas.drawRoundRect(rect, chh / 2f, chh / 2f, chipPaint);
+                float tx = cl + (cw - tw) / 2f;
+                float ty = ct + chh / 2f - (chipTextPaint.descent() + chipTextPaint.ascent()) / 2f;
+                canvas.drawText(s, tx, ty, chipTextPaint);
+            }
+        }
     }
 }

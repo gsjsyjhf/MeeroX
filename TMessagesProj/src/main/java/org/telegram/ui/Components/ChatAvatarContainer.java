@@ -1045,10 +1045,17 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
 
 
     public void showTimeItem(boolean animated) {
+        // MeeroX v257 (his renewed complaint: "النقطة البيضة موجودة إلى الآن"):
+        // v255's GONE only covered the ANIMATED path via onFactorChanged; the
+        // non-animated entry (opening a timed chat) jumps through
+        // BoolAnimator.setFloatValue without it. The dot is now unreachable
+        // on EVERY path - the timer itself stays in the chat ⋮ menu.
         if (avatarImageView.getVisibility() != VISIBLE) {
             return;
         }
-        animatorTimeVisible.setValue(true, animated);
+        if (timeItem != null) {
+            timeItem.setVisibility(GONE);
+        }
     }
 
     public void hideTimeItem(boolean animated) {

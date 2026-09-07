@@ -50021,6 +50021,16 @@ public class ChatActivity extends BaseFragment implements
     }
 
     private boolean canShowCenteredTitle(ChatActivity parentFragment) {
+        // MeeroX v257 (his bug report): "رجوع للأصلي" must bring back the
+        // OFFICIAL Telegram header. Gating only our capsule switch let the
+        // legacy Nagram center-title path below take over, so stock mode
+        // never actually looked stock - cut the whole thing off here.
+        try {
+            if (tw.nekomimi.nekogram.NekoConfig.meeroHeaderStock.Bool()) {
+                return false;
+            }
+        } catch (Throwable ignore) {
+        }
         // MeeroX v254 (cherry-parity, his sealed order): Cherrygram center-title switch
         if (parentFragment != null && parentFragment.meeroCherryTitleOn()) {
             return !parentFragment.isReport()
