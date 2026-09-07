@@ -77,8 +77,14 @@ public final class MeeroMsgMenu {
                     if (root == null) return;
                     final WindowManager.LayoutParams lp = (WindowManager.LayoutParams) root.getLayoutParams();
                     if (lp == null) return;
-                    lp.flags |= WindowManager.LayoutParams.FLAG_BLUR_BEHIND;
-                    lp.blurBehindRadius = AndroidUtilities.dp(14) > 0 ? AndroidUtilities.dp(14) : 40;
+                    // MeeroX v255.3: FLAG_BLUR_BEHIND / blurBehindRadius exist on
+                    // API 31+, but this module's compileSdk predates them (CI
+                    // caught the direct field access), so set them defensively.
+                    lp.flags |= 0x00020000; // WindowManager.LayoutParams.FLAG_BLUR_BEHIND
+                    try {
+                        java.lang.reflect.Field f = WindowManager.LayoutParams.class.getField("blurBehindRadius");
+                        f.setInt(lp, Math.max(AndroidUtilities.dp(14), 28));
+                    } catch (Throwable ignore) { /* keep flag only */ }
                     // Gentle dim on top of the blur so items stay readable.
                     lp.flags |= WindowManager.LayoutParams.FLAG_DIM_BEHIND;
                     lp.dimAmount = 0.30f;

@@ -165,7 +165,7 @@ public class MeeroSettingsActivity extends BaseNekoXSettingsActivity {
     private final AbstractConfigCell msgComfyRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroMsgComfy, "القائمة لا تتجاوز نصف الشاشة — التفاعل أسهل بيد وحدة", "ارتفاع مريح للقائمة ✦"));
     private final AbstractConfigCell msgNativeBlurRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroMsgNativeBlur, "بلر أندرويد الحقيقي خلف قائمة الرسالة (أندرويد 12 وأحدث)", "ضبابية النظام للقائمة ✦"));
     private final AbstractConfigCell msgCompactRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroMsgCompact, "رد ونسخ وتوجيه وتعديل وحذف كدوائر سريعة بأسفل القائمة", "أزرار مدمجة بأسفل القائمة ✦"));
-    private final AbstractConfigCell msgOrderRow = cellGroup.appendCell(new ConfigCellText("ترتيب عناصر القائمة ↕", () -> presentFragment(new MeeroMsgMenuOrderActivity())));
+    private final AbstractConfigCell msgOrderRow = cellGroup.appendCell(new tw.nekomimi.nekogram.config.cell.ConfigCellText("ترتيب عناصر القائمة ↕", () -> presentFragment(new MeeroMsgMenuOrderActivity())));
 
     private boolean meeroIsDevAccount() {
         try {

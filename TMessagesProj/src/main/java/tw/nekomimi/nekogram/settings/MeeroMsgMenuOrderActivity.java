@@ -17,6 +17,7 @@ import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.R;
 import org.telegram.ui.ActionBar.ActionBar;
+import org.telegram.ui.ActionBar.ActionBarMenu;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
 
@@ -84,7 +85,7 @@ public class MeeroMsgMenuOrderActivity extends BaseFragment {
         actionBar = createActionBar(context);
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
         actionBar.setTitle("ترتيب عناصر القائمة");
-        actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenu.ActionBarMenuOnItemClick() {
+        actionBar.setActionBarMenuOnItemClick(new ActionBarMenu.ActionBarMenuOnItemClick() {
             @Override
             public void onItemClick(int id) {
                 if (id == -1) finishFragment();
@@ -114,7 +115,7 @@ public class MeeroMsgMenuOrderActivity extends BaseFragment {
         scroll.addView(rowsContainer);
         content.addView(scroll, org.telegram.ui.Components.LayoutHelper.createFrame(
                 org.telegram.ui.Components.LayoutHelper.MATCH_PARENT,
-                org.telegram.ui.Components.LayoutHelper.MATCH_PARENT, Gravity.TOP, 0, ActionBar.getCurrentActionBarHeight() / getResources().getDisplayMetrics().density + 4, 0, 0));
+                org.telegram.ui.Components.LayoutHelper.MATCH_PARENT, Gravity.TOP, 0, ActionBar.getCurrentActionBarHeight() / context.getResources().getDisplayMetrics().density + 4, 0, 0));
 
         TextView hint = new TextView(context);
         hint.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));
