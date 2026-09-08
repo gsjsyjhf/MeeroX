@@ -552,6 +552,16 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
                 if (child == avatarImageView) {
                     continue;
                 }
+                // MeeroX v271 - the REAL end of the white-disc saga: this
+                // manual loop bypasses ViewGroup's visibility gate, so the
+                // GONE linked-community badge (retired on every path in
+                // v266, never once set VISIBLE anywhere) kept painting its
+                // white disc + dark rim + arrow at the avatar corner -
+                // "unchanged no matter what we killed". Respect GONE like
+                // the stock dispatchDraw does.
+                if (child.getVisibility() != VISIBLE) {
+                    continue;
+                }
                 drawChild(canvas, child, drawingTime);
             }
 
