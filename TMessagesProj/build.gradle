@@ -255,7 +255,10 @@ androidComponents {
     onVariants(selector().all()) { variant ->
         variant.outputs.forEach { output ->
             String gramName = 'MeeroX'
-            String first = String.format('%s-v%s(%s)', gramName, verName, verCode)
+            // MeeroX v266: stamp the edition into the APK file name so he can
+            // ALWAYS tell which build he installed (every release used to
+            // share one identical name - stale-install roulette is over).
+            String first = String.format('%s-v%s(%s)-e%s', gramName, verName, verCode, "${MEERO_EDITION}".strip())
             output.outputFileName.set(
                 output.outputFileName.get()
                     .replace('TMessagesProj', first)

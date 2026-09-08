@@ -1068,9 +1068,20 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
 
     public void setCommunityItemVisible(boolean visible) {
         if (communityItem != null) {
-            // MeeroX v260: the weld becomes a feature - the master toggle
-            // «شارة المجتمع المرتبط ✦» (NekoConfig.meeroCommunityBadge).
-            communityItem.setVisibility(visible && tw.nekomimi.nekogram.NekoConfig.meeroCommunityBadge.Bool() ? VISIBLE : GONE);
+            // MeeroX v266 - END of the chat-header white-dot saga, decided by
+            // pixels: the disc on the header avatar was never the ⋮ glass nor
+            // the timer (that one retired in v255) - it was THIS linked-
+            // community badge (CommunityArrowDrawable: ~13dp white disc + dark
+            // rim + dark arrow, intrinsic 40/3dp), seated at
+            // avatarLeft+28dp / viewTop+27.33dp = the avatar's bottom-right
+            // corner, a 1:1 match with his full-res crop, and the drawChild
+            // PAINT_CLEAR hole (r 7.66dp) under it is why the avatar looked
+            // "shrunk / bitten". His standing order: the header dot GONE
+            // forever - so the header badge is now retired on EVERY path,
+            // unconditionally (config, chat type, linked ids no longer
+            // matter for the header). NekoConfig.meeroCommunityBadge still
+            // governs the badge in the dialog list / profile / search only.
+            communityItem.setVisibility(GONE);
         }
     }
 
