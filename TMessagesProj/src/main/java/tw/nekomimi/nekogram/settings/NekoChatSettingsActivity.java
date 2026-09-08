@@ -149,7 +149,7 @@ public class NekoChatSettingsActivity extends BaseNekoXSettingsActivity implemen
         }
         meeroHdrSubRows.clear();
         int idx = meeroHdrAnchor;
-        hdrGroupRow = new ConfigCellText("شريط الدردشة العلوي ✦", meeroHdrExpanded ? "⌄" : "‹", this::meeroToggleHdrGroup);
+        hdrGroupRow = new ConfigCellText("شريط الدردشة العلوي ✦ · v" + org.telegram.messenger.BuildConfig.MEERO_EDITION, meeroHdrExpanded ? "⌄" : "‹", this::meeroToggleHdrGroup);
         hdrGroupRow.bindCellGroup(cellGroup);
         cellGroup.rows.add(idx++, hdrGroupRow);
         if (meeroHdrExpanded) {
