@@ -192,6 +192,17 @@ public class NekoConfig {
     // المرتبط ✦». (v260 shipped ON and he read that as "the new switch is
     // unrelated to my problem" — owned, corrected.)
     public static ConfigItem meeroCommunityBadge = addConfig("meeroCommunityBadge", configTypeBool, false);
+
+    // MeeroX v269 (his report: «الزر ما يسوى شيء»): the badge sites used the CACHED
+    // Bool(), only evaluated at bind time - toggling looked dead on screen.
+    // This reads the SharedPreferences value LIVE, every single time.
+    public static boolean meeroCommunityBadgeNow() {
+        try {
+            return getPreferences().getBoolean("meeroCommunityBadge", false);
+        } catch (Throwable ignore) {
+            return false;
+        }
+    }
     // MeeroX v255 — message-menu pack (his sealed order). Note: the iOS blur
     // panel, the bubble stack and the ~180ms animations ALREADY exist as
     // meeroMenuBlur / meeroIosMsgMenu / meeroSwiftMenus; these complete it.

@@ -3699,7 +3699,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
             // MeeroX v262: the stacked white "community cards" behind the row
             // avatar (THE white mark behind the "R" avatars) belong to the same
             // «شارة المجتمع المرتبط ✦» feature - one switch, every surface.
-            drawCommunityAvatar = !insideCommunityList && ChatObject.isCommunity(chat) && isDialogCell && tw.nekomimi.nekogram.NekoConfig.meeroCommunityBadge.Bool();
+            drawCommunityAvatar = !insideCommunityList && ChatObject.isCommunity(chat) && isDialogCell && tw.nekomimi.nekogram.NekoConfig.meeroCommunityBadgeNow();
 
             if (currentDialogFolderId != 0) {
                 Theme.dialogs_archiveAvatarDrawable.setCallback(this);
@@ -4882,7 +4882,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                 storyParams.forceState = s;
             }
 
-            if (tw.nekomimi.nekogram.NekoConfig.meeroCommunityBadge.Bool() && !insideCommunityList && (chat != null && chat.linked_community_id != 0 || user != null && user.linked_community_id != 0) && !drawCommunityAvatar && isDialogCell && !isDialogFolder()) {
+            if (tw.nekomimi.nekogram.NekoConfig.meeroCommunityBadgeNow() && !insideCommunityList && (chat != null && chat.linked_community_id != 0 || user != null && user.linked_community_id != 0) && !drawCommunityAvatar && isDialogCell && !isDialogFolder()) {
                 final float ccx = storyParams.originalAvatarRect.centerX() + dp(20.33f);
                 final float ccy = storyParams.originalAvatarRect.centerY() + dp(19);
                 if (communityArrowDrawable == null) {

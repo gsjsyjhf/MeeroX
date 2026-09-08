@@ -126,7 +126,17 @@ public class NekoChatSettingsActivity extends BaseNekoXSettingsActivity implemen
     // MeeroX v260 (his final verdict: feature-with-a-switch, not a silent
     // weld): Telegram 12's white community disc on avatars lives here now.
     private final ConfigCellTextCheck hdrCommunityRow = new ConfigCellTextCheck(NekoConfig.meeroCommunityBadge,
-            "النقطة البيضه على صورة المحادثة للقنوات والمجموعات المربوطة بمجتمع - تظهر بالقائمة وداخل المحادثة والبروفايل", "شارة المجتمع المرتبط ✦");
+            "قرص أبيض بسهم على صور القنوات/المجموعات المربوطة بمجتمع - بالقائمة والبحث والبروفايل (رأس المحادثة متوقف نهائياً منذ v266)", "شارة المجتمع المرتبط ✦") {
+        // MeeroX v269: rebind the dialog list INSTANTLY so toggling is visible at once.
+        @Override
+        public void onClick(org.telegram.ui.Cells.TextCheckCell cell) {
+            super.onClick(cell);
+            try {
+                org.telegram.messenger.NotificationCenter.getGlobalInstance()
+                        .postNotificationName(org.telegram.messenger.NotificationCenter.dialogsNeedReload);
+            } catch (Throwable ignore) {}
+        }
+    };
 
     {
         // park the collapsible block at the very top of the screen

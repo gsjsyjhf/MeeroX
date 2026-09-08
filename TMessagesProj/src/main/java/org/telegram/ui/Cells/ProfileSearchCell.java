@@ -868,7 +868,7 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
         }
 
         // MeeroX v262: community cards obey the MeeroX community-badge master toggle
-        avatarImage.setRoundRadius(ChatObject.isCommunity(chat) && tw.nekomimi.nekogram.NekoConfig.meeroCommunityBadge.Bool() ? DrawableUtils.getCommunityCardDrawableRadius(dp(46)) : chat != null && chat.monoforum ? 0 : rectangularAvatar ? dp(10) : chat != null && chat.forum ? dp(16) : dp(23));
+        avatarImage.setRoundRadius(ChatObject.isCommunity(chat) && tw.nekomimi.nekogram.NekoConfig.meeroCommunityBadgeNow() ? DrawableUtils.getCommunityCardDrawableRadius(dp(46)) : chat != null && chat.monoforum ? 0 : rectangularAvatar ? dp(10) : chat != null && chat.forum ? dp(16) : dp(23));
         if (mask != 0) {
             boolean continueUpdate = false;
             if ((mask & MessagesController.UPDATE_MASK_AVATAR) != 0 && user != null || (mask & MessagesController.UPDATE_MASK_CHAT_AVATAR) != 0 && chat != null) {
@@ -1073,7 +1073,7 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
             StoriesUtilities.drawAvatarWithStory(user.id, canvas, avatarImage, avatarStoryParams);
         } else if (chat != null) {
             // MeeroX v262: community cards obey the MeeroX community-badge master toggle
-            if (ChatObject.isCommunity(chat) && tw.nekomimi.nekogram.NekoConfig.meeroCommunityBadge.Bool()) {
+            if (ChatObject.isCommunity(chat) && tw.nekomimi.nekogram.NekoConfig.meeroCommunityBadgeNow()) {
                 DrawableUtils.drawCommunityCardDrawable(canvas, Theme.dialogs_communityCardsDrawable,
                     avatarStoryParams.originalAvatarRect.centerX(),
                     avatarStoryParams.originalAvatarRect.centerY(),

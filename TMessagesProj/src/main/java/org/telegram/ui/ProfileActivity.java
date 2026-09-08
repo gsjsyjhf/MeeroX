@@ -9879,7 +9879,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         boolean visible = false;
         if (previousTransitionFragment instanceof ChatActivity) {
             final TLRPC.Chat chat = ((ChatActivity) previousTransitionFragment).getCurrentChat();
-            visible = chat != null && chat.linked_community_id != 0 && tw.nekomimi.nekogram.NekoConfig.meeroCommunityBadge.Bool();
+            visible = chat != null && chat.linked_community_id != 0 && tw.nekomimi.nekogram.NekoConfig.meeroCommunityBadgeNow();
         }
         if (visible) {
             communityItem.setTag(1);

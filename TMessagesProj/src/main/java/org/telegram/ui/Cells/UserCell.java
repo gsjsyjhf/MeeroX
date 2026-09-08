@@ -549,7 +549,7 @@ public class UserCell extends FrameLayout implements NotificationCenter.Notifica
             }
             dialogId = currentChat.id;
             // MeeroX v262: community cards obey the MeeroX community-badge master toggle
-            isCommunity = ChatObject.isCommunity(currentChat) && tw.nekomimi.nekogram.NekoConfig.meeroCommunityBadge.Bool();
+            isCommunity = ChatObject.isCommunity(currentChat) && tw.nekomimi.nekogram.NekoConfig.meeroCommunityBadgeNow();
         }
 
         if (mask != 0) {
