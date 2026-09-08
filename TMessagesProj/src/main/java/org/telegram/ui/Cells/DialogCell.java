@@ -3696,7 +3696,10 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                 }
             }
 
-            drawCommunityAvatar = !insideCommunityList && ChatObject.isCommunity(chat) && isDialogCell;
+            // MeeroX v262: the stacked white "community cards" behind the row
+            // avatar (THE white mark behind the "R" avatars) belong to the same
+            // «شارة المجتمع المرتبط ✦» feature - one switch, every surface.
+            drawCommunityAvatar = !insideCommunityList && ChatObject.isCommunity(chat) && isDialogCell && tw.nekomimi.nekogram.NekoConfig.meeroCommunityBadge.Bool();
 
             if (currentDialogFolderId != 0) {
                 Theme.dialogs_archiveAvatarDrawable.setCallback(this);

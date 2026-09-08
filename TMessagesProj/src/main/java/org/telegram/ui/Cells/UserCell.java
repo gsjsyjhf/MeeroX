@@ -548,7 +548,8 @@ public class UserCell extends FrameLayout implements NotificationCenter.Notifica
                 photo = currentChat.photo.photo_small;
             }
             dialogId = currentChat.id;
-            isCommunity = ChatObject.isCommunity(currentChat);
+            // MeeroX v262: community cards obey the MeeroX community-badge master toggle
+            isCommunity = ChatObject.isCommunity(currentChat) && tw.nekomimi.nekogram.NekoConfig.meeroCommunityBadge.Bool();
         }
 
         if (mask != 0) {

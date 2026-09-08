@@ -636,6 +636,21 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
         return false;
     }
 
+    // MeeroX v262: X of the title text's visual center in THIS container's
+    // local coordinates. The title view is measured AT_MOST (it hugs the
+    // text), so the view's center IS the text's center. ActionBar's adaptive
+    // glass pill anchors itself to this exact point: the capsule hugs the name
+    // no matter the menu width, container margins, title length or density.
+    // (Root cause of "name out of capsule": the old pill centered itself
+    // between the back button and the overflow menu while this container
+    // left-anchors the title - two unrelated formulas, guaranteed drift.)
+    public float meeroGetTitleTextCenterX() {
+        if (titleTextView != null && titleTextView.getMeasuredWidth() > 0) {
+            return titleTextView.getLeft() + titleTextView.getTranslationX() + titleTextView.getMeasuredWidth() / 2f;
+        }
+        return getMeasuredWidth() / 2f;
+    }
+
     protected boolean isPreviewMode() {
         return false;
     }

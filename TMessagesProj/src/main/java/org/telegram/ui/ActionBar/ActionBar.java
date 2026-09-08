@@ -2462,25 +2462,13 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
             }
             int textWidth = Math.max(titleWidth, subtitleWidth);
 
+            // MeeroX v262: clamp to the bar itself only. The v254 clamp to the
+            // menu-dependent "default" rect could shrink the capsule under the
+            // text on chats with several menu icons; the pill's position now
+            // follows the text, so the only real bound is the bar edges.
             int targetWidth = Math.max(dp(100), textWidth + dp(40));
             targetWidth += dp(15);
-
-            final int p = dp(6);
-            final int s = dp(46);
-            final boolean hasBackButton = backButtonImageView != null && backButtonImageView.getVisibility() == View.VISIBLE;
-            int defaultMenuWidth = Math.max(0, menu != null ? (int) menu.getItemsWidth() - dp(1) - dp(1) : 0);
-            if (menu != null && menu.isCenteredTitle()) {
-                defaultMenuWidth = (int) lerp(Math.max(defaultMenuWidth, s), defaultMenuWidth, searchFactor);
-            }
-            final int actionMenuWidth = Math.max(0, actionMode != null ? (int) actionMode.getItemsWidth() - dp(1) - dp(1) : 0);
-            final int menuWidth = hasForcedMenuWidth ? forcedMenuWidth : (int) lerp(defaultMenuWidth, actionMenuWidth, getActionModeFactor());
-            final int menuWidthWithPadding = menuWidth > 0 ? (menuWidth + p) : 0;
-            final int rightOffset = (int) lerp(menuWidthWithPadding, Math.max(menuWidthWithPadding, p + s), 0f);
-            final int leftDefault = (int) lerp(hasBackButton ? getBackPillWidth() - p : 0, s + p, 0f);
-            final int rightDefault = getWidth() - rightOffset;
-            final int widthDefault = rightDefault - leftDefault;
-
-            targetWidth = Math.min(widthDefault, targetWidth);
+            targetWidth = Math.min(getWidth() - dp(12), targetWidth);
 
             if (animated) {
                 if (animatorAdaptiveWidth.getToFactor() != targetWidth) {
@@ -2581,8 +2569,13 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
                 chatAvatarContainer.setTranslationX(translationX);
                 chatAvatarContainer.setPivotX((chatAvatarContainer.getMeasuredWidth()) / 2f - translationX );
             } else if (isAdaptiveWidthSupported()) {
-                // MeeroX v254 (cherry-parity): adaptive centered pill, animated around the middle
-                final int baseLeftDefault = hasBackButton ? (s + p * 2) - p : 0;
+                // MeeroX v262: the pill anchors to the ACTUAL drawn title text.
+                // v254's formula centered the pill between the back button and
+                // the overflow menu (baseCenter = (52dp + W - menuWidth) / 2),
+                // while ChatAvatarContainer left-anchors the title inside its
+                // symmetric container - so the capsule drifted off the name on
+                // any real chat whose menu is wider than one item, and in the
+                // settings preview. Following the text kills every variable.
                 int width = (int) animatorAdaptiveWidth.getFactor();
                 if (width <= 0) {
                     int titleWidth = (int) chatAvatarContainer2.getTitleTextView().getExactWidthIncludeDrawables();
@@ -2592,13 +2585,11 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
                     }
                     width = Math.max(dp(100), Math.max(titleWidth, subtitleWidth) + dp(40));
                     width += dp(15);
-                    width = Math.min(widthDefault, width);
                     animatorAdaptiveWidth.forceFactor(width);
                 }
-                width = Math.min(width, widthDefault);
-                final int baseCenter = (baseLeftDefault + rightDefault) / 2;
-                final int baseLeft = baseCenter - width / 2;
-                left = Math.max(baseLeft, leftDefault);
+                width = Math.min(width, getWidth() - p * 2);
+                final float textCenter = chatAvatarContainer2.getX() + chatAvatarContainer2.meeroGetTitleTextCenterX();
+                left = Math.max(p, Math.min(Math.round(textCenter - width / 2f), getWidth() - p - width));
                 right = left + width;
             } else {
                 left = leftDefault;
