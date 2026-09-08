@@ -9874,10 +9874,12 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             return;
         }
 
+        // MeeroX v260: the profile-avatar community disc joins the master
+        // toggle (NekoConfig.meeroCommunityBadge) - one switch, every place.
         boolean visible = false;
         if (previousTransitionFragment instanceof ChatActivity) {
             final TLRPC.Chat chat = ((ChatActivity) previousTransitionFragment).getCurrentChat();
-            visible = chat != null && chat.linked_community_id != 0;
+            visible = chat != null && chat.linked_community_id != 0 && tw.nekomimi.nekogram.NekoConfig.meeroCommunityBadge.Bool();
         }
         if (visible) {
             communityItem.setTag(1);

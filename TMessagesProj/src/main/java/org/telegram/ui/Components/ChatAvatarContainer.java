@@ -937,15 +937,6 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
         setClipChildren(false);
     }
 
-    // MeeroX v259: preview-only title centering switch. The settings header
-    // preview (MeeroHeaderPreviewView) needs the reference geometry - title
-    // in the bar middle, avatar at the far corner - while real chats keep
-    // the battle-tested v254 layout math untouched.
-    private boolean meeroPreviewTitleCenter;
-    public void setMeeroPreviewTitleCenter(boolean value) {
-        meeroPreviewTitleCenter = value;
-    }
-
     private boolean glassMode;
     public void setGlassMode() {
         if (titleTextView != null) {
@@ -969,21 +960,11 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
         }
         avatarImageView.layout(avatarLeft, 1 + viewTop, avatarLeft + avatarImageView.getMeasuredWidth(), 1 + viewTop + avatarImageView.getMeasuredHeight());
 
-        final int l;
-        if (isCentered()) {
-            if (meeroPreviewTitleCenter) {
-                // MeeroX v259 settings-preview geometry (reference look):
-                // the title is centered in the BAR middle - which is the
-                // container middle minus half its own left offset (54dp
-                // margin, 0 on the end side) - clamped away from the corner
-                // avatar so the two never collide.
-                final int centerX = getWidth() / 2 - dp(27);
-                l = Math.max(leftPadding, Math.min(centerX - titleTextView.getMeasuredWidth() / 2, avatarLeft - dp(16) - titleTextView.getMeasuredWidth()));
-            } else {
-                l = leftPadding + (isPreviewMode() ? dp(AndroidUtilities.isTablet() ? 80 : 72) / 2 : dp(6));
-            }
-        } else {
-            l = leftPadding + (avatarImageView.getVisibility() == VISIBLE ? dp(glassMode ? 49.66f : 55) : dp(glassMode ? 13 : 1)) + rightAvatarPadding;
+        int l = leftPadding + (avatarImageView.getVisibility() == VISIBLE && !isCentered() ? dp(glassMode ? 49.66f : 55) : (isCentered() ? 0 : dp(glassMode ? 13 : 1))) + (isCentered() ? 0 : rightAvatarPadding);
+        if (isPreviewMode() && isCentered()) {
+            l += dp(AndroidUtilities.isTablet() ? 80 : 72) / 2;
+        } else if (isCentered()) {
+            l += dp(6);
         }
         SimpleTextView titleTextLargerCopyView = this.titleTextLargerCopyView.get();
         if (getSubtitleTextView().getVisibility() != GONE) {
@@ -1021,17 +1002,9 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
             starFgItem.layout(leftPadding + dp(28), viewTop + dp(24), leftPadding + dp(28) + starFgItem.getMeasuredWidth(), viewTop + dp(24) + starFgItem.getMeasuredHeight());
         }
         if (subtitleTextView != null) {
-            // preview centering: keep the subtitle exactly under the title
-            // (their widths differ, so they can't share the same left edge)
-            final int subtitleL = isCentered() && meeroPreviewTitleCenter
-                    ? l + (titleTextView.getMeasuredWidth() - subtitleTextView.getMeasuredWidth()) / 2
-                    : l;
-            subtitleTextView.layout(subtitleL, subtitleTop, subtitleL + subtitleTextView.getMeasuredWidth(), subtitleTop + subtitleTextView.getTextHeight());
+            subtitleTextView.layout(l, subtitleTop, l + subtitleTextView.getMeasuredWidth(), subtitleTop + subtitleTextView.getTextHeight());
         } else if (animatedSubtitleTextView != null) {
-            final int subtitleL = isCentered() && meeroPreviewTitleCenter
-                    ? l + (titleTextView.getMeasuredWidth() - animatedSubtitleTextView.getMeasuredWidth()) / 2
-                    : l;
-            animatedSubtitleTextView.layout(subtitleL, subtitleTop, subtitleL + animatedSubtitleTextView.getMeasuredWidth(), subtitleTop + animatedSubtitleTextView.getTextHeight());
+            animatedSubtitleTextView.layout(l, subtitleTop, l + animatedSubtitleTextView.getMeasuredWidth(), subtitleTop + animatedSubtitleTextView.getTextHeight());
         }
         SimpleTextView subtitleTextLargerCopyView = this.subtitleTextLargerCopyView.get();
         if (subtitleTextLargerCopyView != null) {
@@ -1053,12 +1026,9 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
 
     public void setCommunityItemVisible(boolean visible) {
         if (communityItem != null) {
-            // MeeroX v258 (his standing order «احذف النقطة البيضاء نهائياً»):
-            // THE dot was never the timer at all - it is Telegram's new
-            // linked-community badge (white disc bottom-corner of the avatar),
-            // which stock mode shows while centered mode hides. Retired on the
-            // chat header in EVERY mode; revert this one line to bring it back.
-            communityItem.setVisibility(GONE);
+            // MeeroX v260: the weld becomes a feature - the master toggle
+            // «شارة المجتمع المرتبط ✦» (NekoConfig.meeroCommunityBadge).
+            communityItem.setVisibility(visible && tw.nekomimi.nekogram.NekoConfig.meeroCommunityBadge.Bool() ? VISIBLE : GONE);
         }
     }
 

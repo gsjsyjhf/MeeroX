@@ -123,6 +123,10 @@ public class NekoChatSettingsActivity extends BaseNekoXSettingsActivity implemen
             "لمعة زجاجية متحركة تعبر كبسولة العنوان وفقاعات الرسائل", "تأثيرات البريق ✦");
     private final ConfigCellTextCheck hdrBadgeRow = new ConfigCellTextCheck(NekoConfig.unreadBadgeOnBackButton,
             "عداد أحمر يعد محادثاتك غير المقروءة الثانية وأنت داخل دردشة", "عداد غير المقروء على زر الرجوع");
+    // MeeroX v260 (his final verdict: feature-with-a-switch, not a silent
+    // weld): Telegram 12's white community disc on avatars lives here now.
+    private final ConfigCellTextCheck hdrCommunityRow = new ConfigCellTextCheck(NekoConfig.meeroCommunityBadge,
+            "النقطة البيضه على صورة المحادثة للقنوات والمجموعات المربوطة بمجتمع - تظهر بالقائمة وداخل المحادثة والبروفايل", "شارة المجتمع المرتبط ✦");
 
     {
         // park the collapsible block at the very top of the screen
@@ -155,6 +159,7 @@ public class NekoChatSettingsActivity extends BaseNekoXSettingsActivity implemen
             meeroHdrSubRows.add(hdrAdaptiveRow);
             meeroHdrSubRows.add(hdrGlareRow);
             meeroHdrSubRows.add(hdrBadgeRow);
+            meeroHdrSubRows.add(hdrCommunityRow);
             for (AbstractConfigCell c : meeroHdrSubRows) {
                 c.bindCellGroup(cellGroup);
                 cellGroup.rows.add(idx++, c);

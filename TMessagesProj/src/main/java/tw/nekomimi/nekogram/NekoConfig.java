@@ -179,6 +179,13 @@ public class NekoConfig {
     // current capsule look survives the update untouched. It GATES reads of
     // meeroCherryTitle-Adaptive (they stay saved, only the effect pauses).
     public static ConfigItem meeroHeaderStock = addConfig("meeroHeaderStock", configTypeBool, false);
+    // MeeroX v260 (his final call «إذا مافي خيار لتعطيلها فلا تحذفها نهائياً»):
+    // the linked-community badge becomes a USER FEATURE with a master switch
+    // instead of a hardcoded weld. Governs every place the white disc shows:
+    // chats list row avatar, chat header avatar, profile avatar. Default ON =
+    // reference parity; flip the row «شارة المجتمع المرتبط ✦» to hide it
+    // everywhere (his original wish, now reversible).
+    public static ConfigItem meeroCommunityBadge = addConfig("meeroCommunityBadge", configTypeBool, true);
     // MeeroX v255 — message-menu pack (his sealed order). Note: the iOS blur
     // panel, the bubble stack and the ~180ms animations ALREADY exist as
     // meeroMenuBlur / meeroIosMsgMenu / meeroSwiftMenus; these complete it.

@@ -39,20 +39,16 @@ import org.telegram.ui.Components.blur3.source.BlurredBackgroundSourceColor;
 import tw.nekomimi.nekogram.NekoConfig;
 
 /**
- * MeeroX v259 (his screenshots, round 3): honest record - v258 fixed the
- * split-state but kept two geometry leftovers he spotted on device:
+ * MeeroX v260 (his round 4 - «شخص السبب مية بالمية»):
  *
- *   1. "صورة الحساب تصير فوق الـ3 نقاط مو جنبه" - our container had a 54dp
- *      end margin in EVERY mode, so the avatar stopped beside the ⋮ menu.
- *      The reference uses NO end margin while centered: the container spans
- *      to the far corner and the avatar is drawn ON the ⋮ spot (it stays
- *      under the container in z-order, so it simply vanishes behind it).
- *   2. "كبسوله الاسم تتوسط" - the title was hugging the container start
- *      (+6dp), while the reference centers it in the bar middle. Wired
- *      through the new preview-only ChatAvatarContainer geometry path
- *      (setMeeroPreviewTitleCenter), so real chats are pixel-untouched.
- *
- *   3. Their bar geometry adopted 1:1 as well: 70dp, edge to edge.
+ *   1. "الصورة ضبطت" - the v259 avatar-over-⋮ trick (no end margin while
+ *      centered, avatar pins the far corner like the reference) STAYS.
+ *   2. "الكبسولة خارجة عن الاسم" - v259 ALSO hand-centered the title via
+ *      custom container math, while the glass pill is positioned by the
+ *      ActionBar's OWN adaptive machinery. Two coordinate systems, one bar:
+ *      the text slid off its capsule. Reverted to the exact v258 layout
+ *      math (proven on HIS device) - container/pill couple again.
+ *   3. Bar stays 70dp edge-to-edge (reference parity from v259).
  *
  * Kept from v257/v258: pristine meeroBuild() rebirth on every config flip,
  * menu.setCenteredTitle wiring, real name/photo (showSelf=true),
@@ -144,9 +140,11 @@ public class MeeroHeaderPreviewView extends FrameLayout {
         // v259 (his words «صورة الحساب تصير فوق الـ3 نقاط مو جنبه»):
         // reference-exact margins - NO end margin while centered - so the
         // avatar is pinned at the far corner, covering the ⋮ spot exactly
-        // like the reference, instead of floating beside it. Plus the
-        // preview-only centering geometry inside the container.
-        avatarContainer.setMeeroPreviewTitleCenter(true);
+        // like the reference, instead of floating beside it.
+        // v260 truth: the container keeps stock layout math (v258-verified),
+        // because the glass pill is sized/positioned by the ActionBar's own
+        // adaptive machinery - hand-centering the title (v259) detached the
+        // two and he caught it («الكبسولة خارجة عن الاسم»). Reverted.
         actionBar.addView(avatarContainer, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.MATCH_PARENT, Gravity.START | Gravity.TOP, 54, 0, lastCentered ? 0 : 54, 0));
         actionBar.setChatAvatarContainer2(avatarContainer);
 
