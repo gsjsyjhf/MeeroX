@@ -143,6 +143,9 @@ public class MeeroHeaderPreviewView extends FrameLayout {
         // - dp(9) this time, the v259 mishap was a dp/px unit slip.
         avatarContainer.setMeeroPreviewTitleCenter(true);
         actionBar.addView(avatarContainer, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.MATCH_PARENT, Gravity.START | Gravity.TOP, 54, 0, lastCentered ? 0 : 54, 0));
+        // MeeroX v264: preview mirrors the real chat fix - avatar paints above
+        // the ⋮ glyph, never under it («الصورة فوق الـ3 نقاط»).
+        avatarContainer.bringToFront();
         actionBar.setChatAvatarContainer2(avatarContainer);
 
         backCapsule = new MeeroBackCapsule(getContext(),

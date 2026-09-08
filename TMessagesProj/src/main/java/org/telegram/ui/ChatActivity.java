@@ -5111,6 +5111,16 @@ public class ChatActivity extends BaseFragment implements
 
         // MeeroX v254 (cherry-parity): centered title hosts the avatar container in its own ActionBar slot
         if (isTitleCentered()) {
+            // MeeroX v264 - «الصورة فوق الـ3 نقاط», literally. Stock keeps the
+            // menu broughtToFront() (line above at addView time), so the ⋮
+            // glyph painted OVER the centered avatar's edge = the white
+            // "dot" he chased for weeks (appears only in centered mode,
+            // dies in stock - his exact A/B). Putting the avatar on top;
+            // the overflow menu stays reachable because the container is a
+            // non-clickable FrameLayout: taps pass through to the menu except
+            // on the avatar itself, whose drag-down submenu (cherry-parity,
+            // avatarOptionsMenuItem) already replaces the overflow there.
+            avatarContainer.bringToFront();
             avatarContainer.setActionBar(actionBar);
             actionBar.setChatAvatarContainer2(avatarContainer);
         } else if (chatMode == MODE_PINNED) {
