@@ -185,7 +185,13 @@ public class NekoConfig {
     // chats list row avatar, chat header avatar, profile avatar. Default ON =
     // reference parity; flip the row «شارة المجتمع المرتبط ✦» to hide it
     // everywhere (his original wish, now reversible).
-    public static ConfigItem meeroCommunityBadge = addConfig("meeroCommunityBadge", configTypeBool, true);
+    // MeeroX v261: default FLIPPED TO OFF. He answered a design question
+    // with «keep it as an optional feature» — but his live reaction to v260
+    // proved the intent all along was «the dot must be GONE unless I ask for
+    // it». Feature stays, just dormant until flipped on from «شارة المجتمع
+    // المرتبط ✦». (v260 shipped ON and he read that as "the new switch is
+    // unrelated to my problem" — owned, corrected.)
+    public static ConfigItem meeroCommunityBadge = addConfig("meeroCommunityBadge", configTypeBool, false);
     // MeeroX v255 — message-menu pack (his sealed order). Note: the iOS blur
     // panel, the bubble stack and the ~180ms animations ALREADY exist as
     // meeroMenuBlur / meeroIosMsgMenu / meeroSwiftMenus; these complete it.

@@ -137,14 +137,11 @@ public class MeeroHeaderPreviewView extends FrameLayout {
         avatarContainer.setTitle(meeroPreviewTitle(user));
         avatarContainer.setSubtitle(getString(R.string.Online));
 
-        // v259 (his words «صورة الحساب تصير فوق الـ3 نقاط مو جنبه»):
-        // reference-exact margins - NO end margin while centered - so the
-        // avatar is pinned at the far corner, covering the ⋮ spot exactly
-        // like the reference, instead of floating beside it.
-        // v260 truth: the container keeps stock layout math (v258-verified),
-        // because the glass pill is sized/positioned by the ActionBar's own
-        // adaptive machinery - hand-centering the title (v259) detached the
-        // two and he caught it («الكبسولة خارجة عن الاسم»). Reverted.
+        // avatar pinned on the ⋮ corner (his approved «الصورة ضبطت»): no end
+        // margin while centered, the avatar covers the menu spot like the
+        // reference. PLUS (v261) the pixel-exact title centering re-enabled
+        // - dp(9) this time, the v259 mishap was a dp/px unit slip.
+        avatarContainer.setMeeroPreviewTitleCenter(true);
         actionBar.addView(avatarContainer, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.MATCH_PARENT, Gravity.START | Gravity.TOP, 54, 0, lastCentered ? 0 : 54, 0));
         actionBar.setChatAvatarContainer2(avatarContainer);
 
@@ -155,6 +152,10 @@ public class MeeroHeaderPreviewView extends FrameLayout {
                 Gravity.START | Gravity.CENTER_VERTICAL, 8, 0, 0, 0));
 
         actionBar.setForceAdaptiveWidth(lastAdaptive);
+        // v261: (re)compute the adaptive pill target against THIS title -
+        // real ChatActivity does this on every layout pass, the preview never
+        // did, so a stale/wrong-width capsule could keep hugging old text.
+        actionBar.checkAvatarContainerWidth(false);
         meeroRefreshCapsule();
         meeroRefreshBackVisuals();
     }

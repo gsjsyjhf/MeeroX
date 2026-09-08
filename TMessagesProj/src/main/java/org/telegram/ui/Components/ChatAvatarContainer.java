@@ -937,6 +937,14 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
         setClipChildren(false);
     }
 
+    // MeeroX v261: preview-only title centering, SECOND ATTEMPT (first one
+    // failed on a dp/px unit slip - signed in blood below at onLayout).
+    // Only MeeroHeaderPreviewView flips this; real chats use stock math.
+    private boolean meeroPreviewTitleCenter;
+    public void setMeeroPreviewTitleCenter(boolean value) {
+        meeroPreviewTitleCenter = value;
+    }
+
     private boolean glassMode;
     public void setGlassMode() {
         if (titleTextView != null) {
@@ -960,11 +968,22 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
         }
         avatarImageView.layout(avatarLeft, 1 + viewTop, avatarLeft + avatarImageView.getMeasuredWidth(), 1 + viewTop + avatarImageView.getMeasuredHeight());
 
-        int l = leftPadding + (avatarImageView.getVisibility() == VISIBLE && !isCentered() ? dp(glassMode ? 49.66f : 55) : (isCentered() ? 0 : dp(glassMode ? 13 : 1))) + (isCentered() ? 0 : rightAvatarPadding);
-        if (isPreviewMode() && isCentered()) {
-            l += dp(AndroidUtilities.isTablet() ? 80 : 72) / 2;
+        final int l;
+        if (isCentered() && meeroPreviewTitleCenter) {
+            // MeeroX v261 settings-preview geometry (PIXEL-EXACT, see note):
+            // The glass pill is bar-centered (baseCenter = bar middle, drawn by
+            // ActionBar's adaptive machinery). The container itself spans
+            // [54dp-margin .. bar end], so its middle sits 27px right of the
+            // bar middle: (barCenter) = (containerCenter) - 27px = dp(9).
+            // THE v259 BUG was feeding dp(27) here - the px/dp unit slip that
+            // shoved the title ~54px too far left, then v260's revert let it
+            // fall back too far right. dp(9) is the measured truth.
+            final int centerX = getWidth() / 2 - dp(9);
+            l = Math.max(leftPadding, Math.min(centerX - titleTextView.getMeasuredWidth() / 2, avatarLeft - dp(16) - titleTextView.getMeasuredWidth()));
         } else if (isCentered()) {
-            l += dp(6);
+            l = leftPadding + (isPreviewMode() ? dp(AndroidUtilities.isTablet() ? 80 : 72) / 2 : dp(6));
+        } else {
+            l = leftPadding + (avatarImageView.getVisibility() == VISIBLE ? dp(glassMode ? 49.66f : 55) : dp(glassMode ? 13 : 1)) + rightAvatarPadding;
         }
         SimpleTextView titleTextLargerCopyView = this.titleTextLargerCopyView.get();
         if (getSubtitleTextView().getVisibility() != GONE) {
@@ -1002,9 +1021,17 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
             starFgItem.layout(leftPadding + dp(28), viewTop + dp(24), leftPadding + dp(28) + starFgItem.getMeasuredWidth(), viewTop + dp(24) + starFgItem.getMeasuredHeight());
         }
         if (subtitleTextView != null) {
-            subtitleTextView.layout(l, subtitleTop, l + subtitleTextView.getMeasuredWidth(), subtitleTop + subtitleTextView.getTextHeight());
+            // preview centering: subtitle sits exactly under the title
+            // (widths differ, so they cannot share one left edge)
+            final int subtitleL = isCentered() && meeroPreviewTitleCenter
+                    ? l + (titleTextView.getMeasuredWidth() - subtitleTextView.getMeasuredWidth()) / 2
+                    : l;
+            subtitleTextView.layout(subtitleL, subtitleTop, subtitleL + subtitleTextView.getMeasuredWidth(), subtitleTop + subtitleTextView.getTextHeight());
         } else if (animatedSubtitleTextView != null) {
-            animatedSubtitleTextView.layout(l, subtitleTop, l + animatedSubtitleTextView.getMeasuredWidth(), subtitleTop + animatedSubtitleTextView.getTextHeight());
+            final int subtitleL = isCentered() && meeroPreviewTitleCenter
+                    ? l + (titleTextView.getMeasuredWidth() - animatedSubtitleTextView.getMeasuredWidth()) / 2
+                    : l;
+            animatedSubtitleTextView.layout(subtitleL, subtitleTop, subtitleL + animatedSubtitleTextView.getMeasuredWidth(), subtitleTop + animatedSubtitleTextView.getTextHeight());
         }
         SimpleTextView subtitleTextLargerCopyView = this.subtitleTextLargerCopyView.get();
         if (subtitleTextLargerCopyView != null) {
