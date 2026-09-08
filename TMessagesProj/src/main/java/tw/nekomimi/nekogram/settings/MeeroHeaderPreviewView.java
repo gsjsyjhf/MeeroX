@@ -96,6 +96,10 @@ public class MeeroHeaderPreviewView extends FrameLayout {
         ActionBarMenu menu = actionBar.createMenu();
         ActionBarMenuItem menuItem = menu.addItem(0, R.drawable.ic_ab_other);
         menuItem.setContentDescription(getString(R.string.AccDescrMoreOptions));
+        // MeeroX v265: mirror the real-chat fix - in the centered look the
+        // avatar replaces the ⋮ slot entirely (its glass circle must not peek
+        // from behind the avatar). Alpha 0 keeps the layout untouched.
+        menuItem.setAlpha(lastCentered ? 0f : 1f);
         // MeeroX v258 fix: THE missing wire. ChatActivity:4692 does
         // menu.setCenteredTitle(isTitleCentered()) - without it the bar laid
         // out half-stock/half-pill (ghost title + empty pill).

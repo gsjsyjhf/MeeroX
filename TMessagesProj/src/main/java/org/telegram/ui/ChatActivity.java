@@ -5121,6 +5121,19 @@ public class ChatActivity extends BaseFragment implements
             // on the avatar itself, whose drag-down submenu (cherry-parity,
             // avatarOptionsMenuItem) already replaces the overflow there.
             avatarContainer.bringToFront();
+            // MeeroX v265 - the FULL closure of the white-dot saga: the disc
+            // he kept seeing was the ⋮ item's own ROUND GLASS BACKDROP
+            // (BlurredBackgroundFactory circle behind chat_menu_options)
+            // peeking from behind the pinned avatar - pixel-confirmed on his
+            // full screenshot (a ~40dp pale glass circle at the right edge,
+            // half-hidden UNDER the avatar; stock shows no dot because the
+            // avatar sits at the opposite side and the circle reads as plain
+            // ⋮ chrome). Hiding the whole item's pixels (alpha 0 keeps the
+            // view measured AND the submenu anchored - the avatar drag-down
+            // popup opens from the same headerItem, chat options survive).
+            if (headerItem != null) {
+                headerItem.setAlpha(0f);
+            }
             avatarContainer.setActionBar(actionBar);
             actionBar.setChatAvatarContainer2(avatarContainer);
         } else if (chatMode == MODE_PINNED) {
