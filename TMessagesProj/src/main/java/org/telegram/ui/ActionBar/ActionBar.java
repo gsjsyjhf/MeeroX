@@ -2550,6 +2550,10 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
         final int b = t + s + p * 2;
 
         if (glassDrawable != null && !glassOnlyBack) {
+            // MeeroX v273: the alpha is animated per-frame below for the
+            // adaptive pill, so always reset it for the other branches (the
+            // drawable is kept and reused across frames).
+            glassDrawable.setAlpha(255);
             final int menuWidthWithPadding = menuWidth + ((hasForcedMenuWidth || hasForcedMenuMinWidth) ? (menuWidth > 0 ? p : 0) : (int) (p * animatorHasMenuItems.getFloatValue()));
             final int rightOffset = lerp(menuWidthWithPadding, Math.max(menuWidthWithPadding, p + s), chatAvatarContainer == null ? 0f : 1f - animatorAvatarContainerHasAvatar.getFloatValue());
 
@@ -2591,6 +2595,16 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
                 final float textCenter = chatAvatarContainer2.getX() + chatAvatarContainer2.meeroGetTitleTextCenterX();
                 left = Math.max(p, Math.min(Math.round(textCenter - width / 2f), getWidth() - p - width));
                 right = left + width;
+                // MeeroX v273 (his screenshot report "صاير زجاج فوق زجاج"):
+                // while the message-selection action mode is showing, the
+                // menu glass pill (restored in v272) hugs the tools at the
+                // right end. This centered title pill anchors to the title
+                // and knows nothing about the menu zone, so it slid under
+                // the tools pill - glass over glass. Fade it out together
+                // with the title and the action-mode fade; the stock
+                // branches are untouched because they end flush with the
+                // menu zone by design.
+                glassDrawable.setAlpha((int) (255 * (1f - actionModeFactor)));
             } else {
                 left = leftDefault;
                 right = rightDefault;
