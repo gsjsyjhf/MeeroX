@@ -2629,8 +2629,25 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
                 // capsule glides into the count capsule within one 200ms
                 // fade - natural glass + selection animation, no overlap,
                 // no bare text. The stock branches are unchanged.
-                left = Math.round(lerp(adaptiveLeft, leftDefault, actionModeFactor));
-                right = Math.round(lerp(adaptiveRight, rightDefault, actionModeFactor));
+                // MeeroX v277 (his report from channel search: «زجاج ما
+                // يحضن الاكس ولا كل الكلمه» + his order: fix it exactly
+                // like the selection tools bar): the morph below only
+                // listened to actionModeFactor, so an open search left
+                // this pill anchored to the now-INVISIBLE title text - the
+                // typed word and the clear-X (both living in the search
+                // field, which spans [searchLeft .. W]) overflowed the
+                // glass. The sibling first branch (old avatar container)
+                // has always morphed with Math.max(searchFactor,
+                // actionModeFactor); port that input 1:1 here. searchFactor
+                // is animated by ChatActivity's
+                // ANIMATOR_ID_SEARCH_FIELD_VISIBILITY, so the capsule
+                // glides from the title geometry into the same flush
+                // [back-pill .. menu-pill) zone the selection capsule
+                // lands in - hugging the whole field (word + X) with one
+                // natural glide. Stock branches untouched.
+                final float meeroMorphFactor = Math.max(searchFactor, actionModeFactor);
+                left = Math.round(lerp(adaptiveLeft, leftDefault, meeroMorphFactor));
+                right = Math.round(lerp(adaptiveRight, rightDefault, meeroMorphFactor));
             } else {
                 left = leftDefault;
                 right = rightDefault;
