@@ -586,6 +586,24 @@ public final class MeeroGlassSupport {
             } else {
                 v.setBackgroundColor(Color.TRANSPARENT);
                 tintCellText(v, MeeroGlassTheme.ink(), MeeroGlassTheme.sub());
+                // MeeroX v276 (his order: take the other features' switches
+                // and put them on the missing buttons): the mock switch swap
+                // used to live only inside cards, but a card opens at a
+                // ConfigCellHeader - so switch rows that live in NO card kept
+                // the stock widget (the collapsible chat-top-strip block for
+                // example: its opener is a ConfigCellText, so every sub-row
+                // computes card == CARD_NONE). Worse, the swap is one-way,
+                // so a recycled view sometimes arrived already swapped and
+                // sometimes virgin - a row's look depended on recycler luck,
+                // exactly his "exit the app and re-enter until the switch
+                // matches the rest". Swap here too: idempotent, and the
+                // widget still draws byte-identical to stock when the glass
+                // switches toggle is off.
+                if (v instanceof TextCheckCell) {
+                    swapSwitch((TextCheckCell) v);
+                } else if (v instanceof TextCheckCell2) {
+                    swapSwitch((TextCheckCell2) v);
+                }
             }
         } else {
             v.setBackgroundColor(v instanceof ShadowSectionCell
