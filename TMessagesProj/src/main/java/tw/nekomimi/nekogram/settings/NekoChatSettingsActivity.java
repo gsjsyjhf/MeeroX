@@ -159,7 +159,8 @@ public class NekoChatSettingsActivity extends BaseNekoXSettingsActivity implemen
         }
         meeroHdrSubRows.clear();
         int idx = meeroHdrAnchor;
-        hdrGroupRow = new ConfigCellText("شريط الدردشة العلوي ✦ · v" + org.telegram.messenger.BuildConfig.MEERO_EDITION, meeroHdrExpanded ? "⌄" : "‹", this::meeroToggleHdrGroup);
+        // MeeroX v275 (his order): the edition tag retires with its mission complete - it proved installs reach his device (the v267 install-certainty probe), the header section keeps a clean title.
+        hdrGroupRow = new ConfigCellText("شريط الدردشة العلوي ✦", meeroHdrExpanded ? "⌄" : "‹", this::meeroToggleHdrGroup);
         hdrGroupRow.bindCellGroup(cellGroup);
         cellGroup.rows.add(idx++, hdrGroupRow);
         if (meeroHdrExpanded) {

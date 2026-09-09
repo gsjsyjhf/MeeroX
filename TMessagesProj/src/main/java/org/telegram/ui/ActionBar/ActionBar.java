@@ -2535,6 +2535,22 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
 
     public boolean doNotDrawGlassMenu;
 
+    // MeeroX v275 (his report: with the adaptive switch OFF, the settings
+    // preview's name capsule merged with the back capsule - «الكبسولة تندمج
+    // مع كبسولة الرجوع»): the preview hides the real back button and draws
+    // its own hand-made back capsule, so the stock pill math below thought
+    // "no back element" and let the name capsule start at x=0 - sliding
+    // under the back capsule. The preview reports its back capsule's RIGHT
+    // edge through this hook; real chats never touch it (button visible =
+    // measured zone, unchanged since v254).
+    private int meeroPreviewBackZoneEndPx = -1;
+    public void setMeeroPreviewBackZoneEnd(int px) {
+        if (meeroPreviewBackZoneEndPx != px) {
+            meeroPreviewBackZoneEndPx = px;
+            invalidate();
+        }
+    }
+
     @Override
     protected void dispatchDraw(Canvas canvas) {
         final int p = dp(6);
@@ -2557,7 +2573,12 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
             final int menuWidthWithPadding = menuWidth + ((hasForcedMenuWidth || hasForcedMenuMinWidth) ? (menuWidth > 0 ? p : 0) : (int) (p * animatorHasMenuItems.getFloatValue()));
             final int rightOffset = lerp(menuWidthWithPadding, Math.max(menuWidthWithPadding, p + s), chatAvatarContainer == null ? 0f : 1f - animatorAvatarContainerHasAvatar.getFloatValue());
 
-            final int leftDefault = lerp(hasBackButton ? s + p : 0, s + p, chatAvatarContainer == null? 0f : 1f - animatorAvatarContainerHasAvatar.getFloatValue());
+            final int leftDefault = meeroPreviewBackZoneEndPx >= 0 && chatAvatarContainer2 != null
+                    // v275: capsule glass starts at the reported capsule edge
+                    // (the drawable's own 6dp padding separates the two pills
+                    // visually, matching the reference's touching-capsules look)
+                    ? meeroPreviewBackZoneEndPx - p
+                    : lerp(hasBackButton ? s + p : 0, s + p, chatAvatarContainer == null? 0f : 1f - animatorAvatarContainerHasAvatar.getFloatValue());
             final int rightDefault = getWidth() - rightOffset;
             final int widthDefault = rightDefault - leftDefault;
             final int left, right;

@@ -201,6 +201,16 @@ public class MeeroHeaderPreviewView extends FrameLayout {
     /** Reference parity: capsule visible only in pill mode; chip per switch. */
     private void meeroRefreshCapsule() {
         backCapsule.setState(lastCentered, meeroBadgeOn());
+        // MeeroX v275 (his report «الكبسولة تندمج مع كبسولة الرجوع» with the
+        // adaptive switch OFF): our hand-made back capsule sits at
+        // [8dp .. 8dp + 63/38dp] while the real button stays INVISIBLE, so
+        // the bar's stock pill math started the name capsule at x=0 and the
+        // two merged. Report the capsule's right edge - the name capsule
+        // now starts exactly after it (separate pills, natural full length,
+        // reference OFF behaviour). Lives here, not in meeroBuild, because
+        // the badge switch flips the capsule width without a rebuild.
+        actionBar.setMeeroPreviewBackZoneEnd(
+                lastCentered ? dp(8) + dp(meeroBadgeOn() ? 63 : 38) : -1);
     }
 
     /** While the capsule is up, the stock back button must not draw under it
