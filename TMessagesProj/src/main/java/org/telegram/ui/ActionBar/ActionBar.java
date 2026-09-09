@@ -2603,19 +2603,16 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
             glassDrawableBack.setBounds(0, t, s + p * 2, b);
             glassDrawableBack.draw(canvas);
         }
-        // MeeroX v263 (his «النقطة البيضاء» saga, SOLVED by pixel forensics):
-        // the white crescent at every chat's header-avatar corner was NEVER a
-        // community badge - it is THIS menu glass pill + the top dot of the
-        // three-dots icon peeking from behind the pinned avatar (evidence:
-        // same x-column as the ⋮ glyph in his v260-era bar screenshot,
-        // appears in every chat, unaffected by the community switch, and
-        // invisible in the pale-wallpaper preview because the glass rim
-        // light only glows against flat dark wallpapers). Skipping the menu
-        // glass pill while our centered capsule mode is active. The ⋮ icon
-        // itself keeps drawing and working - only the occluded chrome dies.
-        // (centered cherry header = avatar pinned over the menu corner, with
-        // or without the adaptive width toggle)
-        if (glassDrawableMenu != null && menuWidth > 0 && !glassOnlyBack && !doNotDrawGlassMenu && !(chatAvatarContainer2 != null && chatAvatarContainer2.isCentered())) {
+        // MeeroX v272 (his order, «كان موجود افتراضي كان»): v263 wrongly
+        // retired this glass pill while chasing the white disc. The saga's
+        // real culprit turned out to be the community badge, which is dead
+        // since v266/v271 - this glass chrome was innocent all along. The
+        // pill is the fork's default look he remembers: the centered title
+        // forces a 46dp menu width (checkMenuItemsWidth), so it backs the
+        // pinned avatar's corner, and while the action mode is open it hugs
+        // the selection tools. Restored in every mode; the ⋮ glyph stays
+        // hidden in the centered header (v265) - only the glass returns.
+        if (glassDrawableMenu != null && menuWidth > 0 && !glassOnlyBack && !doNotDrawGlassMenu) {
             glassDrawableMenu.setBounds(getWidth() - Math.max(s, menuWidth) - p * 2, t, getWidth(), b);
             glassDrawableMenu.setAlpha(hasForcedMenuWidth ? 255 : (int) (255 * animatorHasMenuItems.getFloatValue()));
             glassDrawableMenu.draw(canvas);
