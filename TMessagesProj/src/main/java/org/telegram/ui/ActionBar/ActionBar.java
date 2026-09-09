@@ -2593,18 +2593,23 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
                 }
                 width = Math.min(width, getWidth() - p * 2);
                 final float textCenter = chatAvatarContainer2.getX() + chatAvatarContainer2.meeroGetTitleTextCenterX();
-                left = Math.max(p, Math.min(Math.round(textCenter - width / 2f), getWidth() - p - width));
-                right = left + width;
-                // MeeroX v273 (his screenshot report "صاير زجاج فوق زجاج"):
-                // while the message-selection action mode is showing, the
-                // menu glass pill (restored in v272) hugs the tools at the
-                // right end. This centered title pill anchors to the title
-                // and knows nothing about the menu zone, so it slid under
-                // the tools pill - glass over glass. Fade it out together
-                // with the title and the action-mode fade; the stock
-                // branches are untouched because they end flush with the
-                // menu zone by design.
-                glassDrawable.setAlpha((int) (255 * (1f - actionModeFactor)));
+                final int adaptiveLeft = Math.max(p, Math.min(Math.round(textCenter - width / 2f), getWidth() - p - width));
+                final int adaptiveRight = adaptiveLeft + width;
+                // MeeroX v274 (his order: take the official Telegram design):
+                // in official Telegram the selection bar reads as flush
+                // ADJACENT capsules - count capsule, then tools capsule -
+                // and the switch itself animates. v272 made this title pill
+                // slide under the tools pill (glass over glass); v273's
+                // fade-out left the count bare. So instead of hiding, MORPH
+                // this pill with the action-mode factor from its
+                // text-anchored title geometry into the stock
+                // [back-pill .. menu-pill) capsule (leftDefault..rightDefault
+                // already end flush with the menu zone by design): the title
+                // capsule glides into the count capsule within one 200ms
+                // fade - natural glass + selection animation, no overlap,
+                // no bare text. The stock branches are unchanged.
+                left = Math.round(lerp(adaptiveLeft, leftDefault, actionModeFactor));
+                right = Math.round(lerp(adaptiveRight, rightDefault, actionModeFactor));
             } else {
                 left = leftDefault;
                 right = rightDefault;
