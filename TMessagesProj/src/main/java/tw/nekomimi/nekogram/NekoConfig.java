@@ -90,7 +90,10 @@ public class NekoConfig {
     // migrate the old value (loadConfig below). No UI references it anymore.
     public static ConfigItem meeroIosBubbles = addConfig("meeroIosBubbles", configTypeBool, true);
     public static ConfigItem meeroBubbleStyle = addConfig("meeroBubbleStyle", configTypeInt, 1);
-    public static ConfigItem meeroTapMenu = addConfig("meeroTapMenu", configTypeBool, true);
+    // MeeroX v278 (owner's explicit order «زيل الميزة»): meeroTapMenu is
+    // retired - key removed along with its settings row and the
+    // ChatMessageCell touch hook. Old stored values are harmless orphans.
+
     // MeeroX v126: fixed exclusive "Glass Night" skin for MeeroX settings
     // screens - ignores Telegram themes, follows day/night only. Default ON
     // (display feature); OFF returns the stock themed look exactly.

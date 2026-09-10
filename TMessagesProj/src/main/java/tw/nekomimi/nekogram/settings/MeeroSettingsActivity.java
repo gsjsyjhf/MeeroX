@@ -141,7 +141,9 @@ public class MeeroSettingsActivity extends BaseNekoXSettingsActivity {
 
     // Chat - things that only show up inside a conversation.
     private final AbstractConfigCell headerChat = cellGroup.appendCell(new ConfigCellHeader(MeeroStrings.s(105)));
-    private final AbstractConfigCell tapMenuRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroTapMenu, MeeroStrings.s(264)));
+    // MeeroX v278 (owner's explicit order «زيل الميزة»): the
+    // single-tap-opens-menu row is retired - key, row and ChatMessageCell
+    // hook all removed. Vault strings s(264/265) intentionally stay put.
     private final AbstractConfigCell menuBlurRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroMenuBlur, MeeroStrings.s(170)));
     // MeeroX v107: separate switch for the full-screen fog behind the
     // bottom-bar chats popup (menuBlur above frosts the menu panel itself).
@@ -182,7 +184,26 @@ public class MeeroSettingsActivity extends BaseNekoXSettingsActivity {
     // used to sit beneath it was merged into the single combined row above
     // ("Bubbles & read marks"), whose sheet hosts both pickers as tabs - one
     // row, two features, no duplicates.
-    private final AbstractConfigCell ticksSwitchRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroTicksSwitch, MeeroStrings.s(266)));
+    // MeeroX v278 (his order «لازم عند التفعيل يظهر اختيار علامات القراءة
+    // والإرسال بالقائمة التي تناسب التصميم العام»): that merge was exactly
+    // why nothing appeared on enable anymore - so turning the master
+    // switch ON now opens the designed picker sheet straight on the ticks
+    // tab (chosen style = one shape for the sent ✓ and the read ✓✓ marks,
+    // live hero preview, his approved general-design sheet). OFF stays
+    // silent - it just returns the official ticks.
+    private final AbstractConfigCell ticksSwitchRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroTicksSwitch, MeeroStrings.s(266)) {
+        @Override
+        public void onClick(org.telegram.ui.Cells.TextCheckCell cell) {
+            super.onClick(cell);
+            if (NekoConfig.meeroTicksSwitch.Bool() && getParentActivity() != null) {
+                MeeroPickerSheet.open(getParentActivity(), MeeroPickerSheet.TAB_TICKS, () -> {
+                    if (listAdapter != null) {
+                        listAdapter.notifyDataSetChanged();
+                    }
+                });
+            }
+        }
+    });
     private final AbstractConfigCell storyDownloadRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroStoryDownload, MeeroStrings.s(260)));
     // MeeroX v95: the ghost swipe-read toggle moved into GhostModeActivity
     // (circle-style row) so all ghost features live in one place.
