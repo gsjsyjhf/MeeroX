@@ -112,11 +112,11 @@ public class MeeroSettingsActivity extends BaseNekoXSettingsActivity {
     // MeeroX v129: mock-accurate switches sit directly under the master
     // design row. Own on/off; OFF = stock switch even under the glass skin.
     private final AbstractConfigCell glassSwitchesRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroGlassSwitches, MeeroStrings.s(103)));
-    // MeeroX v125: ONE combined row owns both shape pickers - its name tells
-    // the user it holds two features, and the tap opens the shared modern
-    // sheet on the bubbles tab (the read-marks tab lives inside the same
-    // sheet). The old separate tick-style row is gone.
-    private final AbstractConfigCell bubbleStyleRow = cellGroup.appendCell(new ConfigCellSelectBox("MeeroPickerRowTitle", NekoConfig.meeroBubbleStyle, bubbleStyleNames(), () -> showBubbleStyleDialog()));
+    // MeeroX v280 (his order «والذي في الصورة ينتقل إلى المحادثات»): the
+    // combined bubble-picker row joined the moved Chat section inside the
+    // «المحادثات» sub-screen. The style NAME/DESC helpers stay HERE because
+    // the shared picker sheet reads them cross-class - only the row, its
+    // names array and its opener moved. One place, no repeats.
     private final AbstractConfigCell cardsRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroCards, MeeroStrings.s(36)));
     private final AbstractConfigCell dialogsStyleRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroDialogsStyle, MeeroStrings.s(83)));
     private final AbstractConfigCell glassBordersRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroGlassBorders, MeeroStrings.s(101)));
@@ -464,23 +464,9 @@ public class MeeroSettingsActivity extends BaseNekoXSettingsActivity {
         }
     }
 
-    private static String[] bubbleStyleNames() {
-        String[] names = new String[BUBBLE_STYLE_COUNT];
-        for (int i = 0; i < BUBBLE_STYLE_COUNT; i++) {
-            names[i] = bubbleStyleName(i);
-        }
-        return names;
-    }
-
-    private void showBubbleStyleDialog() {
-        // MeeroX v124: the old AlertDialog list became the modern shared
-        // bottom sheet (design A) - same skin for both pickers, tab #0.
-        MeeroPickerSheet.open(getParentActivity(), MeeroPickerSheet.TAB_BUBBLES, () -> {
-            if (listAdapter != null) {
-                listAdapter.notifyDataSetChanged();
-            }
-        });
-    }
+    // MeeroX v280: bubbleStyleNames()/showBubbleStyleDialog() moved with
+    // the row to NekoChatSettingsActivity; the name/desc helpers above
+    // stay single-sourced here for the shared picker sheet.
 
     @Override
     public String getTitle() {

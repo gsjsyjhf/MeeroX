@@ -48,6 +48,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import kotlin.Unit;
+import tw.nekomimi.nekogram.MeeroBubbleStyles;
 import tw.nekomimi.nekogram.MeeroStrings;
 import tw.nekomimi.nekogram.NekoConfig;
 import tw.nekomimi.nekogram.config.CellGroup;
@@ -225,7 +226,31 @@ public class NekoChatSettingsActivity extends BaseNekoXSettingsActivity implemen
         }
     });
     private final AbstractConfigCell storyDownloadRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroStoryDownload, MeeroStrings.s(260)));
+    // MeeroX v280 (his order «والذي في الصورة ينتقل إلى المحادثات» - the
+    // «فقاعة iOS الرسمية» bubble picker): the last bubble-related row left
+    // on the main page joins its family here. Same key, names served
+    // single-sourced from MeeroSettingsActivity.bubbleStyleName (the
+    // shared sheet reads that helper too, so it must stay there), same
+    // designed sheet opening on the bubbles tab (the read-marks tab lives
+    // inside it).
+    private final AbstractConfigCell bubbleStyleRow = cellGroup.appendCell(new ConfigCellSelectBox("MeeroPickerRowTitle", NekoConfig.meeroBubbleStyle, bubbleStyleNames(), this::showBubbleStyleDialog));
     private final AbstractConfigCell dividerChatMoved = cellGroup.appendCell(new ConfigCellDivider());
+
+    private static String[] bubbleStyleNames() {
+        final String[] names = new String[MeeroBubbleStyles.COUNT];
+        for (int i = 0; i < names.length; i++) {
+            names[i] = MeeroSettingsActivity.bubbleStyleName(i);
+        }
+        return names;
+    }
+
+    private void showBubbleStyleDialog() {
+        MeeroPickerSheet.open(getParentActivity(), MeeroPickerSheet.TAB_BUBBLES, () -> {
+            if (listAdapter != null) {
+                listAdapter.notifyDataSetChanged();
+            }
+        });
+    }
 
     private boolean meeroIsDevAccount() {
         try {
