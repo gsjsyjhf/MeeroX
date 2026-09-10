@@ -2612,9 +2612,23 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
                     width += dp(15);
                     animatorAdaptiveWidth.forceFactor(width);
                 }
-                width = Math.min(width, getWidth() - p * 2);
+                // MeeroX v279 (his report: long chat names merge the title
+                // capsule into the back capsule and the avatar capsule; his
+                // sealed pick «طريقة Cherrygram الكاملة 1:1»): Cherrygram's
+                // adaptive branch caps the pill width at the natural zone
+                // (Math.min(widthDefault, ...)) and clamps the left edge
+                // INSIDE it - a long name can never pour over the back
+                // capsule or the menu/avatar zone. Ours capped at
+                // getWidth()-12dp and clamped at 6dp, which is exactly how
+                // his merge screenshot happened. The two guards are ported
+                // verbatim; our text-anchored centring (v262) is unchanged
+                // for names that fit. (Cherrygram's extra text-nudge step
+                // guards a back capsule that GROWS with the unread chip -
+                // ours is fixed 58dp with the chip inside it by design, so
+                // that step has no case to catch here.)
+                width = Math.min(width, widthDefault);
                 final float textCenter = chatAvatarContainer2.getX() + chatAvatarContainer2.meeroGetTitleTextCenterX();
-                final int adaptiveLeft = Math.max(p, Math.min(Math.round(textCenter - width / 2f), getWidth() - p - width));
+                final int adaptiveLeft = Math.max(leftDefault, Math.min(Math.round(textCenter - width / 2f), rightDefault - width));
                 final int adaptiveRight = adaptiveLeft + width;
                 // MeeroX v274 (his order: take the official Telegram design):
                 // in official Telegram the selection bar reads as flush

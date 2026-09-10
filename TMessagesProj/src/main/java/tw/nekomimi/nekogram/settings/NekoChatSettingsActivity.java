@@ -48,6 +48,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import kotlin.Unit;
+import tw.nekomimi.nekogram.MeeroStrings;
 import tw.nekomimi.nekogram.NekoConfig;
 import tw.nekomimi.nekogram.config.CellGroup;
 import tw.nekomimi.nekogram.config.cell.AbstractConfigCell;
@@ -186,6 +187,53 @@ public class NekoChatSettingsActivity extends BaseNekoXSettingsActivity implemen
         boolean center = NekoConfig.meeroCherryTitle.Bool();
         hdrCenterRow.setEnabled(!stock);
         hdrAdaptiveRow.setEnabled(!stock && center);
+    }
+
+    // ---------------------------------------------------------------
+    // MeeroX v279 (his sealed three-option pick «كامل قسم المحادثات
+    // ينتقل» + placement pick «تحت البلوك»): the WHOLE Chat section that
+    // used to live on the main MeeroX settings page moved here, sitting
+    // under the chat-top-strip block (collapsed or expanded, the block's
+    // dynamic rows keep parking at index 0, so this section always sits
+    // right below it). Same config keys, same vault strings, same
+    // behaviours (the ticks master keeps its enable-opens-sheet from
+    // v278; the dev-profile row keeps its @i55544 gate). Nothing is
+    // duplicated back on the main page - one place, no repeats.
+    // ---------------------------------------------------------------
+    private final AbstractConfigCell headerChatMoved = cellGroup.appendCell(new ConfigCellHeader(MeeroStrings.s(105)));
+    private final AbstractConfigCell menuBlurRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroMenuBlur, MeeroStrings.s(170)));
+    private final AbstractConfigCell chatsMenuFogRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroChatsMenuFog, MeeroStrings.s(65)));
+    private final AbstractConfigCell iosInputPillRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroIosInputPill, MeeroStrings.s(138)));
+    private final AbstractConfigCell devProfileBgRow = meeroIsDevAccount() ? cellGroup.appendCell(new ConfigCellSelectBox("MeeroDevProfileBg", NekoConfig.meeroDevProfileBg, new String[]{"نقشة اسمك بالخلفية", "صورة البروفايل خلفية", "إيقاف الخلفية"}, null)) : null;
+    private final AbstractConfigCell iosWaveformRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroIosWaveform, MeeroStrings.s(152)));
+    private final AbstractConfigCell iosCodeRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroIosCode, MeeroStrings.s(134)));
+    private final AbstractConfigCell iosSelectionRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroIosSelection, MeeroStrings.s(148)));
+    private final AbstractConfigCell amoledBubblesRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroAmoledBubbles, MeeroStrings.s(8)));
+    private final AbstractConfigCell amoledStrokeRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroAmoledStroke, MeeroStrings.s(9)));
+    private final AbstractConfigCell unifiedRadiiRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroUnifiedRadii, MeeroStrings.s(267)));
+    private final AbstractConfigCell ticksSwitchRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroTicksSwitch, MeeroStrings.s(266)) {
+        @Override
+        public void onClick(org.telegram.ui.Cells.TextCheckCell cell) {
+            super.onClick(cell);
+            if (NekoConfig.meeroTicksSwitch.Bool() && getParentActivity() != null) {
+                MeeroPickerSheet.open(getParentActivity(), MeeroPickerSheet.TAB_TICKS, () -> {
+                    if (listAdapter != null) {
+                        listAdapter.notifyDataSetChanged();
+                    }
+                });
+            }
+        }
+    });
+    private final AbstractConfigCell storyDownloadRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroStoryDownload, MeeroStrings.s(260)));
+    private final AbstractConfigCell dividerChatMoved = cellGroup.appendCell(new ConfigCellDivider());
+
+    private boolean meeroIsDevAccount() {
+        try {
+            final org.telegram.messenger.UserConfig cfg = org.telegram.messenger.UserConfig.getInstance(org.telegram.messenger.UserConfig.selectedAccount);
+            return cfg != null && cfg.getCurrentUser() != null && cfg.getCurrentUser().username != null && cfg.getCurrentUser().username.equalsIgnoreCase("i55544");
+        } catch (Throwable ignore) {
+            return false;
+        }
     }
 
     // Sticker Size

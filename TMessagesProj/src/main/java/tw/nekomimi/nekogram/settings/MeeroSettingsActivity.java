@@ -139,75 +139,15 @@ public class MeeroSettingsActivity extends BaseNekoXSettingsActivity {
     private final AbstractConfigCell iosMediaGridRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroIosMediaGrid, MeeroStrings.s(142)));
     private final AbstractConfigCell dividerAppearance = cellGroup.appendCell(new ConfigCellDivider());
 
-    // Chat - things that only show up inside a conversation.
-    private final AbstractConfigCell headerChat = cellGroup.appendCell(new ConfigCellHeader(MeeroStrings.s(105)));
-    // MeeroX v278 (owner's explicit order «زيل الميزة»): the
-    // single-tap-opens-menu row is retired - key, row and ChatMessageCell
-    // hook all removed. Vault strings s(264/265) intentionally stay put.
-    private final AbstractConfigCell menuBlurRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroMenuBlur, MeeroStrings.s(170)));
-    // MeeroX v107: separate switch for the full-screen fog behind the
-    // bottom-bar chats popup (menuBlur above frosts the menu panel itself).
-    private final AbstractConfigCell chatsMenuFogRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroChatsMenuFog, MeeroStrings.s(65)));
-    private final AbstractConfigCell iosInputPillRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroIosInputPill, MeeroStrings.s(138)));
-    // MeeroX v250 (his sealed order): the dev-profile wallpaper switch is
-    // visible ONLY on the dev account's own device (@i55544). Everyone else
-    // just renders the default tiled-name pattern - no row, no trace.
-    private final AbstractConfigCell devProfileBgRow = meeroIsDevAccount() ? cellGroup.appendCell(new ConfigCellSelectBox("MeeroDevProfileBg", NekoConfig.meeroDevProfileBg, new String[]{"نقشة اسمك بالخلفية", "صورة البروفايل خلفية", "إيقاف الخلفية"}, null)) : null;
-    // MeeroX v257 (his order «انقله كله للمحادثات»): the v256 collapsible
-    // chat-top-strip section that stood here MOVED to the «المحادثات»
-    // sub-screen (NekoChatSettingsActivity, top). Nothing of it stays in
-    // this screen — no duplicate copies (his pick: one place, no repeats).
-
-    private boolean meeroIsDevAccount() {
-        try {
-            final org.telegram.messenger.UserConfig cfg = org.telegram.messenger.UserConfig.getInstance(org.telegram.messenger.UserConfig.selectedAccount);
-            return cfg != null && cfg.getCurrentUser() != null && cfg.getCurrentUser().username != null && cfg.getCurrentUser().username.equalsIgnoreCase("i55544");
-        } catch (Throwable ignore) {
-            return false;
-        }
-    }
-    // MeeroX v142: approved mock "preview-v142" - the iPhone chat header
-    // (centered name/status pill + detached photo circle at the edge; tools
-    // behind the photo tap / long-press glass menu).
-    private final AbstractConfigCell iosWaveformRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroIosWaveform, MeeroStrings.s(152)));
-    private final AbstractConfigCell iosCodeRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroIosCode, MeeroStrings.s(134)));
-    private final AbstractConfigCell iosSelectionRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroIosSelection, MeeroStrings.s(148)));
-    // MeeroX v159: approved polish - true-black AMOLED bubbles + one corner
-    // radius for every in-bubble card.
-    private final AbstractConfigCell amoledBubblesRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroAmoledBubbles, MeeroStrings.s(8)));
-    // MeeroX v164 (approved pick): the AMOLED bubble hairline - defaults OFF
-    // so the full-pure-black blend stays for everyone who prefers it merged.
-    private final AbstractConfigCell amoledStrokeRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroAmoledStroke, MeeroStrings.s(9)));
-    private final AbstractConfigCell unifiedRadiiRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroUnifiedRadii, MeeroStrings.s(267)));
-    // MeeroX v92: delivery ticks - a dedicated master switch (off returns the
-    // official Android ticks). MeeroX v125: the tick-shape picker row that
-    // used to sit beneath it was merged into the single combined row above
-    // ("Bubbles & read marks"), whose sheet hosts both pickers as tabs - one
-    // row, two features, no duplicates.
-    // MeeroX v278 (his order «لازم عند التفعيل يظهر اختيار علامات القراءة
-    // والإرسال بالقائمة التي تناسب التصميم العام»): that merge was exactly
-    // why nothing appeared on enable anymore - so turning the master
-    // switch ON now opens the designed picker sheet straight on the ticks
-    // tab (chosen style = one shape for the sent ✓ and the read ✓✓ marks,
-    // live hero preview, his approved general-design sheet). OFF stays
-    // silent - it just returns the official ticks.
-    private final AbstractConfigCell ticksSwitchRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroTicksSwitch, MeeroStrings.s(266)) {
-        @Override
-        public void onClick(org.telegram.ui.Cells.TextCheckCell cell) {
-            super.onClick(cell);
-            if (NekoConfig.meeroTicksSwitch.Bool() && getParentActivity() != null) {
-                MeeroPickerSheet.open(getParentActivity(), MeeroPickerSheet.TAB_TICKS, () -> {
-                    if (listAdapter != null) {
-                        listAdapter.notifyDataSetChanged();
-                    }
-                });
-            }
-        }
-    });
-    private final AbstractConfigCell storyDownloadRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.meeroStoryDownload, MeeroStrings.s(260)));
-    // MeeroX v95: the ghost swipe-read toggle moved into GhostModeActivity
-    // (circle-style row) so all ghost features live in one place.
-    private final AbstractConfigCell dividerChat = cellGroup.appendCell(new ConfigCellDivider());
+    // MeeroX v279 (his sealed three-option pick «كامل قسم المحادثات
+    // ينتقل» + placement «تحت البلوك بقسم المحادثات»): the WHOLE Chat
+    // section (header + menuBlur + chatsMenuFog + iosInputPill +
+    // devProfileBg (dev-gated) + iosWaveform + iosCode + iosSelection +
+    // amoledBubbles + amoledStroke + unifiedRadii + ticks master (with its
+    // enable-opens-sheet) + storyDownload + divider) MOVED to the
+    // «المحادثات» sub-screen (NekoChatSettingsActivity), right under the
+    // chat-top-strip block — same keys, same vault strings, one place,
+    // no repeats. Header s(105)/footers stay referenced there.
 
     // Navigation - moving between screens and lists.
     private final AbstractConfigCell headerNavigation = cellGroup.appendCell(new ConfigCellHeader(MeeroStrings.s(107)));
