@@ -2,34 +2,35 @@ package tw.nekomimi.nekogram.settings;
 
 import tw.nekomimi.nekogram.MeeroStrings;
 
-import static org.telegram.messenger.LocaleController.getString;
-
 import android.content.Context;
+import android.graphics.BitmapShader;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Matrix;
+import android.graphics.Outline;
 import android.graphics.Paint;
-import android.graphics.PorterDuff;
-import android.graphics.RectF;
+import android.graphics.Shader;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
-import android.os.SystemClock;
-import android.text.Layout;
-import android.text.StaticLayout;
-import android.text.TextPaint;
 import android.util.TypedValue;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewOutlineProvider;
 import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import org.telegram.messenger.AndroidUtilities;
-import org.telegram.messenger.LocaleController;
-import org.telegram.messenger.R;
+import org.telegram.messenger.MessageObject;
+import org.telegram.messenger.UserConfig;
+import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.BottomSheet;
 import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.Cells.ChatMessageCell;
 
 import tw.nekomimi.nekogram.MeeroBubbleStyles;
 import tw.nekomimi.nekogram.MeeroGlassTheme;
@@ -37,19 +38,28 @@ import tw.nekomimi.nekogram.MeeroTickStyles;
 import tw.nekomimi.nekogram.NekoConfig;
 
 /**
- * MeeroX v124 - the modern selector sheet shared by the bubble-shape row and
- * the read-mark row. A real Telegram bottom sheet with a grip, a segmented
- * «Bubbles | Read marks» tab pill, a big LIVE preview and a
- * sideways-scrolling card rail. One tap applies the style instantly - no OK
- * button, the hero is always WYSIWYG.
+ * MeeroX v281 (his triple pick, sealed after the explanation):
  *
- * v131 rebuild (the user's request #2): no more drawn stripes pretending to
- * be text. The hero is now a real three-message conversation laid out with
- * StaticLayout, wearing the actual chat text/time colors, with the read
- * ticks sitting in the meta row exactly like a chat bubble, and the card
- * thumbnails are single real mini messages instead of empty outlines. The
- * bubbles themselves still route through MeeroBubbleStyles.drawPreview(), so
- * what you pick is what the chat draws.
+ *   a1 - the old hand-painted hero (canvas stripes pretending to be chat,
+ *        «قبيحه جدا وليس حقيقيه») is RETIRED. The preview is now a REAL
+ *        conversation: actual ChatMessageCell views fed by fabricated
+ *        TLRPC messages - the exact pattern Telegram itself ships in
+ *        ThemePreviewMessagesCell - over the user's own cached wallpaper.
+ *        Bubble outlines come from MessageDrawable, which re-reads
+ *        MeeroBubbleStyles on every draw, and the read ticks come from
+ *        Theme's own check drawables, so the preview IS the chat.
+ *   b2 - rail cards are clean: name (+ description for bubbles) + the
+ *        check badge, no tiny canvases; the tapped style is witnessed on
+ *        the real strip above.
+ *   c1 - on the read-marks tab the strip wears the CANDIDATE pair even
+ *        while the master switch is off (preview-only override, cleared
+ *        on tab-leave and on dismiss; chats never inherit it).
+ *
+ * Bonus honesty note: before v281 a tick-style change only reached the
+ * chats after a process restart, because Theme's check drawables are
+ * built once (null-guarded in createChatResources). The sheet now runs
+ * the same official reload (null + createChatResources) that a font
+ * change runs, so a pick is live everywhere immediately.
  */
 public final class MeeroPickerSheet {
 
@@ -77,16 +87,38 @@ public final class MeeroPickerSheet {
         return d;
     }
 
-    /** Tick pair tinted for the outgoing bubble's meta row (the chat colors). */
-    private static Drawable[] metaTicks(Context context, int style, int tint) {
-        if (style < 0 || style >= MeeroTickStyles.COUNT) {
-            style = 0;
+    /** What the chats would draw right now (master gate honoured). */
+    private static int realTickStyle() {
+        if (!NekoConfig.meeroTicksSwitch.Bool()) {
+            return -1;
         }
-        Drawable single = context.getResources().getDrawable(MeeroTickStyles.SINGLES[style]).mutate();
-        single.setColorFilter(tint, PorterDuff.Mode.SRC_IN);
-        Drawable second = context.getResources().getDrawable(MeeroTickStyles.SECONDS[style]).mutate();
-        second.setColorFilter(tint, PorterDuff.Mode.SRC_IN);
-        return new Drawable[]{single, second};
+        final int s = NekoConfig.meeroTickStyle.Int();
+        return (s < 0 || s >= MeeroTickStyles.COUNT) ? 0 : s;
+    }
+
+    /** v281: which tick pair Theme's chat drawables were last built with. */
+    private static int appliedTicks = Integer.MIN_VALUE;
+
+    /**
+     * Points Theme at the wanted tick pair. override >= 0 = preview a
+     * candidate regardless of the master switch (c1); -1 = the real state.
+     * The Theme override flag is ALWAYS set; the heavier drawable rebuild
+     * only runs when the effective pair actually changes.
+     */
+    private static void syncTickDrawables(Context context, int override) {
+        try {
+            Theme.meeroTickStylePreviewOverride = override;
+            final int desired = override >= 0
+                    ? Math.min(override, MeeroTickStyles.COUNT - 1)
+                    : realTickStyle();
+            if (desired == appliedTicks) {
+                return;
+            }
+            appliedTicks = desired;
+            Theme.chat_msgInDrawable = null;
+            Theme.createChatResources(context, false);
+        } catch (Throwable ignore) {
+        }
     }
 
     public static void open(final Context context, final int firstTab, final Runnable onApply) {
@@ -99,8 +131,6 @@ public final class MeeroPickerSheet {
 
         // v128: with the glass skin on, the sheet wears the fixed MeeroX
         // palette like the settings screen (theme-proof, day/night only).
-        // The hero bubbles stay on chat colors on purpose - they preview
-        // what the chat itself looks like.
         final boolean glass = MeeroGlassTheme.enabled();
         final int colSheet = glass ? MeeroGlassTheme.sheetBg() : Theme.getColor(Theme.key_dialogBackground);
         final int colInk = glass ? MeeroGlassTheme.ink() : Theme.getColor(Theme.key_dialogTextBlack);
@@ -159,11 +189,11 @@ public final class MeeroPickerSheet {
         subp.bottomMargin = dp(12);
         root.addView(subtitle, subp);
 
-        // ---- hero live conversation preview ----
-        final HeroView hero = new HeroView(context, colSheet, colAccent);
+        // ---- the REAL conversation strip (a1) ----
+        final RealChatStrip strip = new RealChatStrip(context);
         LinearLayout.LayoutParams hlp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(196));
         hlp.bottomMargin = dp(12);
-        root.addView(hero, hlp);
+        root.addView(strip, hlp);
 
         // ---- cards rail ----
         final LinearLayout cards = new LinearLayout(context);
@@ -201,6 +231,19 @@ public final class MeeroPickerSheet {
             title.setText((bubbles ? MeeroStrings.s(35) : MeeroStrings.s(265)));
         };
 
+        // v281: one sync point - the read-marks tab wears the candidate pair
+        // (c1), the bubbles tab and the dismiss always fall back to the
+        // real master-gated state.
+        final Runnable syncStrip = () -> {
+            if (tab[0] == TAB_TICKS) {
+                final int s = NekoConfig.meeroTickStyle.Int();
+                syncTickDrawables(context, (s < 0 || s >= MeeroTickStyles.COUNT) ? 0 : s);
+            } else {
+                syncTickDrawables(context, -1);
+            }
+            strip.rebuild();
+        };
+
         // Single-element holder: the card-tap lambda calls back into this
         // runnable, which javac disallows inside its own initializer.
         final Runnable[] rebuildCards = new Runnable[1];
@@ -220,10 +263,10 @@ public final class MeeroPickerSheet {
                         onApply.run();
                     }
                     rebuildCards[0].run();
-                    hero.refresh(tab[0], bubbles ? NekoConfig.meeroBubbleStyle.Int() : NekoConfig.meeroTickStyle.Int());
+                    syncStrip.run();
                 }));
             }
-            hero.refresh(tab[0], bubbles ? NekoConfig.meeroBubbleStyle.Int() : NekoConfig.meeroTickStyle.Int());
+            syncStrip.run();
         };
 
         segL.setOnClickListener(v -> { tab[0] = TAB_BUBBLES; refreshSeg.run(); rebuildCards[0].run(); });
@@ -231,6 +274,12 @@ public final class MeeroPickerSheet {
 
         refreshSeg.run();
         rebuildCards[0].run();
+
+        // v281: leaving the sheet ALWAYS restores the real tick pair so a
+        // candidate preview can never leak into the chats. (The empty-arg
+        // lambda pins BottomSheet's Runnable overload - same pattern
+        // VideoAds already uses against this very setter.)
+        sheet.setOnDismissListener(() -> syncTickDrawables(context, -1));
 
         sheet.setCustomView(root);
         sheet.setBackgroundColor(colSheet);
@@ -242,51 +291,33 @@ public final class MeeroPickerSheet {
         void onTap(int style);
     }
 
-    /** One rail card: real mini message + name (+ desc for bubbles) + check badge. */
+    /**
+     * v281 (his pick b2): a clean rail card - name (+ description on the
+     * bubbles tab) with the check badge; nothing is painted by hand because
+     * the style itself is witnessed on the real conversation strip above.
+     */
     private static View makeCard(final Context context, final boolean bubbles, final int style, final boolean selected,
                                  int colSheet, int colInk, int colSub, int colAccent, final CardTap tap) {
         final FrameLayout wrap = new FrameLayout(context);
 
         final LinearLayout inner = new LinearLayout(context);
         inner.setOrientation(LinearLayout.VERTICAL);
-        inner.setGravity(Gravity.CENTER_HORIZONTAL);
-        inner.setPadding(dp(8), dp(8), dp(8), dp(8));
+        inner.setGravity(Gravity.CENTER);
+        inner.setPadding(dp(8), dp(10), dp(8), dp(10));
+        inner.setMinimumHeight(dp(bubbles ? 74 : 50));
 
         final GradientDrawable bg = pill(colSheet, 16);
         bg.setStroke(dp(selected ? 2f : 1.2f), selected ? colAccent : blend(colSheet, colSub, 0.25f));
         inner.setBackground(bg);
 
-        if (bubbles) {
-            // v131: a real single outgoing mini message in the card's style,
-            // carrying its short greeting, time and the current read ticks.
-            final MiniMessageView mini = new MiniMessageView(context, style);
-            LinearLayout.LayoutParams ip = new LinearLayout.LayoutParams(dp(76), dp(48));
-            ip.bottomMargin = dp(4);
-            inner.addView(mini, ip);
-        } else {
-            final FrameLayout icons = new FrameLayout(context);
-            final ImageView single = new ImageView(context);
-            single.setImageDrawable(MeeroSettingsActivity.tickStyleIcon(context, style, false));
-            final ImageView second = new ImageView(context);
-            second.setImageDrawable(MeeroSettingsActivity.tickStyleIcon(context, style, true));
-            FrameLayout.LayoutParams l1 = new FrameLayout.LayoutParams(dp(15), dp(15), Gravity.START | Gravity.CENTER_VERTICAL);
-            FrameLayout.LayoutParams l2 = new FrameLayout.LayoutParams(dp(15), dp(15), Gravity.START | Gravity.CENTER_VERTICAL);
-            l2.setMarginStart(dp(9));
-            icons.addView(single, l1);
-            icons.addView(second, l2);
-            LinearLayout.LayoutParams ip = new LinearLayout.LayoutParams(dp(76), dp(48));
-            ip.bottomMargin = dp(4);
-            inner.addView(icons, ip);
-        }
-
         final TextView name = new TextView(context);
-        name.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11.5f);
+        name.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12f);
         name.setTextColor(selected ? colAccent : colInk);
         name.setSingleLine(true);
         name.setEllipsize(android.text.TextUtils.TruncateAt.END);
         name.setGravity(Gravity.CENTER);
         name.setText(bubbles ? MeeroSettingsActivity.bubbleStyleName(style) : MeeroSettingsActivity.tickStyleName(style));
-        inner.addView(name, new LinearLayout.LayoutParams(dp(76), LinearLayout.LayoutParams.WRAP_CONTENT));
+        inner.addView(name, new LinearLayout.LayoutParams(dp(84), LinearLayout.LayoutParams.WRAP_CONTENT));
 
         if (bubbles) {
             final TextView desc = new TextView(context);
@@ -295,7 +326,9 @@ public final class MeeroPickerSheet {
             desc.setGravity(Gravity.CENTER);
             desc.setMaxLines(2);
             desc.setText(MeeroSettingsActivity.bubbleStyleDesc(style));
-            inner.addView(desc, new LinearLayout.LayoutParams(dp(76), LinearLayout.LayoutParams.WRAP_CONTENT));
+            LinearLayout.LayoutParams dParams = new LinearLayout.LayoutParams(dp(84), LinearLayout.LayoutParams.WRAP_CONTENT);
+            dParams.topMargin = dp(3);
+            inner.addView(desc, dParams);
         }
 
         final TextView badge = new TextView(context);
@@ -326,324 +359,133 @@ public final class MeeroPickerSheet {
     }
 
     /**
-     * v131: the card thumbnail - ONE real outgoing mini message (text, time,
-     * current read ticks) drawn inside the candidate bubble style, so the
-     * rail reads like snippets of an actual chat instead of empty outlines.
+     * v281 (his pick a1): the hero preview - three REAL chat cells fabricated
+     * the way Telegram's own ThemePreviewMessagesCell builds its preview
+     * (a handmade TLRPC.TL_message wrapped in a MessageObject, fed to a
+     * stock ChatMessageCell), stacked over the user's cached wallpaper.
+     * Touches are swallowed: this is a showcase, not a chat.
      */
-    private static class MiniMessageView extends View {
-        private final int style;
-        private final TextPaint textPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
-        private final TextPaint metaPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
-        private final int colOut, colTime;
-        private final String text;
-        private final String time = "10:24";
-        private Drawable tick1, tick2;
+    private static final class RealChatStrip extends FrameLayout {
 
-        MiniMessageView(Context context, int style) {
+        private final LinearLayout list;
+        private Drawable backgroundDrawable;
+
+        RealChatStrip(Context context) {
             super(context);
-            this.style = style;
-            this.text = MeeroStrings.s(187);
-            this.colOut = Theme.getColor(Theme.key_chat_outBubble);
-            this.colTime = Theme.getColor(Theme.key_chat_outTimeText);
-            textPaint.setColor(Theme.getColor(Theme.key_chat_messageTextOut));
-            textPaint.setTextSize(dp(9.5f));
-            metaPaint.setColor(colTime);
-            metaPaint.setTextSize(dp(6.5f));
+            setWillNotDraw(false);
+            list = new LinearLayout(context);
+            list.setOrientation(LinearLayout.VERTICAL);
+            list.setPadding(dp(8), dp(10), dp(8), dp(10));
+            FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
+            addView(list, lp);
+            // the strip is a window into a chat - same rounded mask the old
+            // hero panel had.
+            setClipToOutline(true);
+            setOutlineProvider(new ViewOutlineProvider() {
+                @Override
+                public void getOutline(View view, Outline outline) {
+                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dp(18));
+                }
+            });
         }
 
-        @Override
-        protected void onDraw(Canvas canvas) {
-            if (tick1 == null || tick2 == null) {
-                Drawable[] t = metaTicks(getContext(), NekoConfig.meeroTickStyle.Int(), colTime);
-                tick1 = t[0];
-                tick2 = t[1];
-            }
-            final float w = getWidth(), h = getHeight();
-            // v132 fix: RTL mirror, same as the hero - an outgoing mini
-            // message on an Arabic screen wears its tail bottom-left.
-            final boolean rtl = LocaleController.isRTL;
-            MeeroBubbleStyles.drawPreview(canvas, style, rtl, 0, dp(1.5f), w, h - dp(1.5f), colOut);
-
-            // drawPreview keeps a 7dp tail allowance on the outing side; the
-            // text block sits centered inside the body, above the meta row.
-            final float dpu = AndroidUtilities.density;
-            final float bodyL = rtl ? 7f * dpu : 0f;
-            final float bodyR = rtl ? w : w - 7f * dpu;
-            final float metaH = dp(7.5f);
-            final float textBase = (h - metaH) / 2f + textPaint.getTextSize() * 0.38f;
-            final float textW = textPaint.measureText(text);
-            canvas.drawText(text, Math.max(dp(4), bodyL + (bodyR - bodyL - textW) / 2f - dp(1)), textBase, textPaint);
-
-            final float timeW = metaPaint.measureText(time);
-            final float tick = dp(6f);
-            final float overlap = dp(2.5f);
-            final float ticksW = tick * 2f - overlap;
-            final float gap = dp(2.5f);
-            final float metaW = timeW + gap + ticksW;
-            final float base = h - dp(6.5f);
-            if (rtl) {
-                float cx = bodyL + dp(5);
-                tick2.setBounds((int) cx, (int) (base - tick), (int) (cx + tick), (int) base);
-                tick2.draw(canvas);
-                tick1.setBounds((int) (cx + tick - overlap), (int) (base - tick), (int) (cx + ticksW), (int) base);
-                tick1.draw(canvas);
-                cx += ticksW + gap;
-                canvas.drawText(time, cx, base - dp(1), metaPaint);
-            } else {
-                float cx = bodyR - dp(5) - metaW;
-                canvas.drawText(time, cx, base - dp(1), metaPaint);
-                cx += timeW + gap;
-                tick2.setBounds((int) cx, (int) (base - tick), (int) (cx + tick), (int) base);
-                tick2.draw(canvas);
-                tick1.setBounds((int) (cx + tick - overlap), (int) (base - tick), (int) (cx + ticksW), (int) base);
-                tick1.draw(canvas);
-            }
-        }
-    }
-
-    /**
-     * The big live preview: a REAL three-message conversation (text laid out
-     * with StaticLayout, the chat's own message/time colors, the read ticks
-     * in the meta row) playing a short pop-in stagger whenever a style is
-     * tapped. In bubbles mode all three wear the candidate style; in ticks
-     * mode the outgoing message carries the candidate tick pair.
-     */
-    private static class HeroView extends View {
-        private static final long ANIM_DUR = 420L;
-        private static final long STAGGER = 130L;
-
-        private final Paint panel = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final TextPaint textPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
-        private final TextPaint metaPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
-        private final RectF rf = new RectF();
-        private final int colOut, colIn, colMsgOut, colMsgIn, colTimeOut, colTimeIn;
-        private final Context ctx;
-        private int mode = TAB_BUBBLES;
-        private int style = MeeroBubbleStyles.IOS_OFFICIAL;
-        private int tickStyle = 0;
-        private Drawable tick1, tick2;
-        private final Msg[] msgs = new Msg[3];
-        private boolean layoutDirty = true;
-        private long animStart = -1L;
-
-        private static final class Msg {
-            boolean outgoing;
-            CharSequence text;
-            String time;
-            StaticLayout layout;
-            float bw, bh, x, y;
+        /** Fabricates one plain text message exactly like the reference. */
+        private MessageObject fakeMessage(boolean outgoing, String text, int id) {
+            final int date = (int) (System.currentTimeMillis() / 1000) - 60 * 60 + id * 60;
+            TLRPC.Message msg = new TLRPC.TL_message();
+            msg.message = text;
+            msg.date = date;
+            msg.dialog_id = 1L;
+            // 258 = the reference's 259 minus the unread flag bit: outgoing
+            // preview messages are READ, so they wear the double check.
+            msg.flags = 258;
+            msg.from_id = new TLRPC.TL_peerUser();
+            msg.from_id.user_id = UserConfig.getInstance(UserConfig.selectedAccount).getClientUserId();
+            msg.id = id;
+            msg.media = new TLRPC.TL_messageMediaEmpty();
+            msg.out = outgoing;
+            msg.unread = false;
+            msg.peer_id = new TLRPC.TL_peerUser();
+            msg.peer_id.user_id = outgoing ? 0 : UserConfig.getInstance(UserConfig.selectedAccount).getClientUserId();
+            MessageObject mo = new MessageObject(UserConfig.selectedAccount, msg, true, false);
+            mo.eventId = 1;
+            mo.resetLayout();
+            return mo;
         }
 
-        HeroView(Context context, int colSheet, int colAccent) {
-            super(context);
-            this.ctx = context;
-            this.colOut = Theme.getColor(Theme.key_chat_outBubble);
-            this.colIn = Theme.getColor(Theme.key_chat_inBubble);
-            this.colMsgOut = Theme.getColor(Theme.key_chat_messageTextOut);
-            this.colMsgIn = Theme.getColor(Theme.key_chat_messageTextIn);
-            this.colTimeOut = Theme.getColor(Theme.key_chat_outTimeText);
-            this.colTimeIn = Theme.getColor(Theme.key_chat_inTimeText);
-            panel.setColor(blend(colSheet, colAccent, 0.13f));
-            panel.setStyle(Paint.Style.FILL);
-            textPaint.setTextSize(dp(13.5f));
-            metaPaint.setTextSize(dp(10.5f));
-
-            // A small conversation that reads naturally in both locales:
-            // greeting in, longer answer out, reaction back in.
-            for (int i = 0; i < 3; i++) {
-                msgs[i] = new Msg();
+        /** Rebuilds the whole strip pristine - the v260 rebirth trick. */
+        void rebuild() {
+            list.removeAllViews();
+            final MessageObject[] msgs = new MessageObject[]{
+                    fakeMessage(false, MeeroStrings.s(111), 1),
+                    fakeMessage(true, MeeroStrings.s(112), 2),
+                    fakeMessage(false, MeeroStrings.s(113), 3)
+            };
+            for (final MessageObject mo : msgs) {
+                final ChatMessageCell cell = new ChatMessageCell(getContext(), UserConfig.selectedAccount,
+                        false, null, null) {
+                    @Override
+                    public boolean onTouchEvent(MotionEvent event) {
+                        return false;
+                    }
+                };
+                cell.setFullyDraw(true);
+                cell.setMessageObject(mo, null, false, false, false);
+                list.addView(cell, new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
             }
-            msgs[0].outgoing = false; msgs[0].text = MeeroStrings.s(111); msgs[0].time = "10:24";
-            msgs[1].outgoing = true;  msgs[1].text = MeeroStrings.s(112); msgs[1].time = "10:25";
-            msgs[2].outgoing = false; msgs[2].text = MeeroStrings.s(113); msgs[2].time = "10:26";
-        }
-
-        void refresh(int newMode, int sel) {
-            mode = newMode;
-            if (mode == TAB_BUBBLES) {
-                style = sel;
-                // back on the bubbles tab the hero wears the CURRENT tick
-                // config again; a stale candidate pair must not linger.
-                tick1 = tick2 = null;
-            } else {
-                tickStyle = sel;
-                Drawable[] t = metaTicks(ctx, tickStyle, colTimeOut);
-                tick1 = t[0];
-                tick2 = t[1];
-            }
-            animStart = SystemClock.uptimeMillis();
+            // a soft fade settles the rebuild instead of a hard flash.
+            setAlpha(0f);
+            animate().alpha(1f).setDuration(220).start();
             invalidate();
         }
 
         @Override
-        protected void onSizeChanged(int w, int h, int oldw, int oldh) {
-            layoutDirty = true;
-        }
-
-        private void rebuildLayout() {
-            layoutDirty = false;
-            final float w = getWidth(), h = getHeight();
-            final int maxTextW = (int) (w * 0.58f);
-            final float pad = dp(12);
-            float cy = pad;
-            final boolean rtl = LocaleController.isRTL;
-            for (Msg m : msgs) {
-                textPaint.setColor(m.outgoing ? colMsgOut : colMsgIn);
-                // v132 fix (user report #1): TWO passes. The layout box used
-                // to be maxTextW wide regardless of content, so RTL-aligned
-                // short lines sat at the right end of a box far wider than
-                // the bubble and got clipped outside it ("نص مقصوص وكلام غير
-                // موجود"). Pass one measures, pass two rebuilds the layout at
-                // exactly the widest line, so box width == bubble content.
-                StaticLayout probe = StaticLayout.Builder
-                        .obtain(m.text, 0, m.text.length(), textPaint, maxTextW)
-                        .setAlignment(Layout.Alignment.ALIGN_NORMAL)
-                        .setIncludePad(false)
-                        .build();
-                float lineW = 0;
-                for (int l = 0; l < probe.getLineCount(); l++) {
-                    lineW = Math.max(lineW, probe.getLineWidth(l));
-                }
-                final int contentW = Math.max(dp(24), Math.min(maxTextW, (int) Math.ceil(lineW)));
-                m.layout = StaticLayout.Builder
-                        .obtain(m.text, 0, m.text.length(), textPaint, contentW)
-                        .setAlignment(Layout.Alignment.ALIGN_NORMAL)
-                        .setIncludePad(false)
-                        .build();
-                // Bubble width: exact text + side padding + the 7dp tail
-                // allowance drawPreview() reserves on the outing side.
-                m.bw = contentW + dp(18) + dp(7);
-                m.bh = m.layout.getHeight() + dp(14) + dp(13);
-                final boolean rightSide = m.outgoing != rtl;
-                m.x = rightSide ? w - pad - m.bw : pad;
-                m.y = cy;
-                cy += m.bh + dp(7);
-            }
-        }
-
-        private static float easeOutBack(float t) {
-            final float c1 = 1.70158f, c3 = c1 + 1f;
-            return 1f + c3 * (float) Math.pow(t - 1f, 3) + c1 * (float) Math.pow(t - 1f, 2);
-        }
-
-        @Override
         protected void onDraw(Canvas canvas) {
-            final float w = getWidth(), h = getHeight();
-            rf.set(0, 0, w, h);
-            canvas.drawRoundRect(rf, dp(18), dp(18), panel);
-            if (layoutDirty) {
-                rebuildLayout();
+            // Wallpaper: the same proven path ThemePreviewMessagesCell draws.
+            Drawable d = Theme.getCachedWallpaperNonBlocking();
+            if (Theme.wallpaperLoadTask != null) {
+                invalidate();
             }
-
-            final long now = SystemClock.uptimeMillis();
-            boolean animating = false;
-            final int bubbleStyle = mode == TAB_BUBBLES ? style : NekoConfig.meeroBubbleStyle.Int();
-            for (int i = 0; i < msgs.length; i++) {
-                final Msg m = msgs[i];
-                float p = 1f;
-                if (animStart >= 0) {
-                    p = Math.min(1f, Math.max(0f, (now - animStart - i * STAGGER) / (float) ANIM_DUR));
-                    if (p < 1f) {
-                        animating = true;
+            if (d != backgroundDrawable && d != null) {
+                backgroundDrawable = d;
+            }
+            if (backgroundDrawable != null) {
+                if (backgroundDrawable instanceof ColorDrawable
+                        || backgroundDrawable instanceof GradientDrawable
+                        || backgroundDrawable instanceof org.telegram.ui.Components.MotionBackgroundDrawable) {
+                    backgroundDrawable.setBounds(0, 0, getMeasuredWidth(), getMeasuredHeight());
+                    backgroundDrawable.draw(canvas);
+                } else if (backgroundDrawable instanceof BitmapDrawable) {
+                    final BitmapDrawable bitmapDrawable = (BitmapDrawable) backgroundDrawable;
+                    bitmapDrawable.setFilterBitmap(true);
+                    if (bitmapDrawable.getTileModeX() == Shader.TileMode.REPEAT) {
+                        canvas.save();
+                        float scale = 2.0f / AndroidUtilities.density;
+                        canvas.scale(scale, scale);
+                        bitmapDrawable.setBounds(0, 0, (int) Math.ceil(getMeasuredWidth() / scale), (int) Math.ceil(getMeasuredHeight() / scale));
+                    } else {
+                        int viewHeight = getMeasuredHeight();
+                        float scaleX = (float) getMeasuredWidth() / (float) bitmapDrawable.getIntrinsicWidth();
+                        float scaleY = (float) viewHeight / (float) bitmapDrawable.getIntrinsicHeight();
+                        float scale = Math.max(scaleX, scaleY);
+                        int width = (int) Math.ceil(bitmapDrawable.getIntrinsicWidth() * scale);
+                        int height = (int) Math.ceil(bitmapDrawable.getIntrinsicHeight() * scale);
+                        int x = (getMeasuredWidth() - width) / 2;
+                        int y = (viewHeight - height) / 2;
+                        canvas.save();
+                        canvas.clipRect(0, 0, width, getMeasuredHeight());
+                        bitmapDrawable.setBounds(x, y, x + width, y + height);
                     }
-                }
-                final float ease = easeOutBack(p);
-                final boolean transformed = p < 1f;
-                if (transformed) {
-                    canvas.save();
-                    final float cx = m.x + m.bw / 2f, cyy = m.y + m.bh / 2f;
-                    final float s = 0.85f + 0.15f * ease;
-                    canvas.scale(s, s, cx, cyy);
-                }
-
-                final int bubbleColor = m.outgoing ? colOut : colIn;
-                if (transformed) {
-                    // simple two-pass alpha: the whole message (bubble + text)
-                    // fades in together by drawing into the same save-layer-free
-                    // block - colors are pre-multiplied by drawAlpha here.
-                    canvas.saveLayerAlpha(m.x - dp(8), m.y - dp(8), m.x + m.bw + dp(8), m.y + m.bh + dp(8),
-                            (int) (255 * p));
-                }
-                // v132 fix: in RTL the conversation mirror also mirrors the
-                // TAIL side - an outgoing bubble on the left wears its tail
-                // at the bottom-left ("incoming" shape), otherwise the tail
-                // pointed inward and read as a crack in the bubble.
-                MeeroBubbleStyles.drawPreview(canvas, bubbleStyle, shapeIncoming(m), m.x, m.y, m.x + m.bw, m.y + m.bh, bubbleColor);
-                drawMessageContent(canvas, m);
-                if (transformed) {
+                    backgroundDrawable.draw(canvas);
                     canvas.restore();
-                    canvas.restore();
+                } else {
+                    backgroundDrawable.setBounds(0, 0, getMeasuredWidth(), getMeasuredHeight());
+                    backgroundDrawable.draw(canvas);
                 }
-            }
-            if (animating) {
-                postInvalidateOnAnimation();
-            }
-        }
-
-        /** Tail side in the preview: mirrored with the conversation in RTL. */
-        private static boolean shapeIncoming(Msg m) {
-            return LocaleController.isRTL ? m.outgoing : !m.outgoing;
-        }
-
-        /** Text block + meta row (time, and ticks on outgoing) inside one bubble. */
-        private void drawMessageContent(Canvas canvas, Msg m) {
-            final float dpu = AndroidUtilities.density;
-            final boolean rtl = LocaleController.isRTL;
-            // body inset follows the SHAPE side (mirrored in RTL), not the
-            // message direction (see onDraw / shapeIncoming).
-            final boolean shapeIn = shapeIncoming(m);
-            final float bodyL = shapeIn ? m.x + 7f * dpu : m.x;
-            final float bodyR = shapeIn ? m.x + m.bw : m.x + m.bw - 7f * dpu;
-
-            textPaint.setColor(m.outgoing ? colMsgOut : colMsgIn);
-            metaPaint.setColor(m.outgoing ? colTimeOut : colTimeIn);
-
-            final float textTop = m.y + (m.bh - dp(13) - m.layout.getHeight()) / 2f + dp(1);
-            canvas.save();
-            canvas.translate(bodyL + dp(9), textTop);
-            m.layout.draw(canvas);
-            canvas.restore();
-
-            // Meta row at the reading-end corner, exactly like a chat: in
-            // LTR "10:25 ✓✓" at the right, in RTL "✓✓ 10:25" at the left.
-            final float timeW = metaPaint.measureText(m.time);
-            final float tick = m.outgoing ? dp(11) : 0f;
-            final float tickGap = m.outgoing ? dp(3) : 0f;
-            // the two tick drawables overlap by ~a third, like the chat
-            // screen - at this size more overlap reads as a double-check,
-            // too little reads as "/✓" (the user's "كسور" remark).
-            final float tickOverlap = dp(4.5f);
-            final float ticksW = m.outgoing ? tick * 2f - tickOverlap : 0f;
-            final float metaW = timeW + tickGap + ticksW;
-            final float baseline = m.y + m.bh - dp(7);
-            if (m.outgoing && (tick1 == null || tick2 == null)) {
-                Drawable[] t = metaTicks(ctx, NekoConfig.meeroTickStyle.Int(), colTimeOut);
-                tick1 = t[0];
-                tick2 = t[1];
-            }
-            final float metaStart = rtl ? bodyL + dp(9) : bodyR - dp(9) - metaW;
-            if (rtl) {
-                float cx = metaStart;
-                if (m.outgoing && tick1 != null && tick2 != null) {
-                    tick2.setBounds((int) cx, (int) (baseline - tick), (int) (cx + tick), (int) baseline);
-                    tick2.draw(canvas);
-                    tick1.setBounds((int) (cx + tick - tickOverlap), (int) (baseline - tick),
-                            (int) (cx + tick * 2f - tickOverlap), (int) baseline);
-                    tick1.draw(canvas);
-                    cx += ticksW + tickGap;
-                }
-                canvas.drawText(m.time, cx, baseline - dp(1.5f), metaPaint);
             } else {
-                float cx = metaStart;
-                canvas.drawText(m.time, cx, baseline - dp(1.5f), metaPaint);
-                cx += timeW + tickGap;
-                if (m.outgoing && tick1 != null && tick2 != null) {
-                    tick2.setBounds((int) cx, (int) (baseline - tick), (int) (cx + tick), (int) baseline);
-                    tick2.draw(canvas);
-                    tick1.setBounds((int) (cx + tick - tickOverlap), (int) (baseline - tick),
-                            (int) (cx + tick * 2f - tickOverlap), (int) baseline);
-                    tick1.draw(canvas);
-                }
+                canvas.drawColor(Theme.getColor(Theme.key_windowBackgroundGray));
             }
         }
     }

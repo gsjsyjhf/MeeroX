@@ -4810,8 +4810,21 @@ public class Theme {
      * shipped in v57, kept byte-identical; 1..7 are the v92 shapes. Default
      * keeps exactly what users already see.
      */
+    /**
+     * MeeroX v281 (his sealed pick c1): while the picker sheet explores the
+     * read-marks tab, the preview strip wears the CANDIDATE pair even with
+     * the master switch off. The sheet sets this on tab-entry and always
+     * clears it (-1) on tab-leave and on dismiss, so the chats can never
+     * inherit a preview pair.
+     */
+    public static int meeroTickStylePreviewOverride = -1;
+
     private static int meeroTickStyle() {
         try {
+            if (meeroTickStylePreviewOverride >= 0
+                    && meeroTickStylePreviewOverride < tw.nekomimi.nekogram.MeeroTickStyles.COUNT) {
+                return meeroTickStylePreviewOverride;
+            }
             if (!tw.nekomimi.nekogram.NekoConfig.meeroTicksSwitch.Bool()) {
                 return -1;
             }
